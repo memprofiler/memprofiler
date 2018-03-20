@@ -1,1 +1,1 @@
-# go-memory-analyzer
+# memprofiler

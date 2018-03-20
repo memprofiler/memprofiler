@@ -2,6 +2,7 @@ package memprofiler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"sort"
@@ -49,7 +50,12 @@ func (p *defaultProfiler) loop() {
 		}
 
 		if p.cfg.DumpToLogger {
-			p.dumpMeasurement(mm)
+			dump, err := json.Marshal(mm)
+			if err != nil {
+				p.logger.Error(fmt.Sprintf("Failed to marshal measurement: %s", err.Error()))
+			} else {
+				p.logger.Debug(string(dump))
+			}
 		}
 	}
 }
@@ -86,10 +92,6 @@ func (p *defaultProfiler) measure() (*Measurement, error) {
 	}
 
 	return mm, nil
-}
-
-func (p *defaultProfiler) dumpMeasurement(mm *Measurement) {
-
 }
 
 func (p *defaultProfiler) Quit() {
