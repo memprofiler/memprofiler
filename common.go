@@ -1,4 +1,4 @@
-package analyzer
+package memprofiler
 
 import (
 	"crypto/md5"
@@ -29,16 +29,23 @@ type MemoryUsage struct {
 	AllocBytes   int64 `json:"alloc_bytes"`
 }
 
+func (mu *MemoryUsage) update(r *runtime.MemProfileRecord) {
+	mu.InUseObjects += r.InUseObjects()
+	mu.InUseBytes += r.InUseBytes()
+	mu.AllocObjects += r.AllocObjects
+	mu.AllocBytes += r.AllocBytes
+}
+
 // Stack describes the call stack of memory allocations
 type Stack struct {
 	Records []*StackRecord
 }
 
 // fill uses raw data to populate stack
-func (s *Stack) fill(raw []uintptr, allFrames bool) {
+func (s *Stack) fill(rawStack []uintptr, allFrames bool) {
 	var (
 		show   = allFrames
-		frames = runtime.CallersFrames(raw)
+		frames = runtime.CallersFrames(rawStack)
 	)
 	for {
 		frame, more := frames.Next()
@@ -60,7 +67,7 @@ func (s *Stack) fill(raw []uintptr, allFrames bool) {
 	}
 }
 
-// hash helps to compare stacks
+// hashing helps to compare stacks
 func (s *Stack) hash() (string, error) {
 	h := md5.New()
 
