@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package schema;
+
+import "google/protobuf/timestamp.proto";
+
+// Memprofiler is a service for tracking Go applications memory usage
+service Memprofiler {
+    rpc Save(stream SaveRequest) returns (SaveResponse) {};
+};
+
+// SaveRequest - request for Save method
+message SaveRequest {
+    oneof payload {
+        ServiceDescription service_description = 1;
+        Measurement measurement = 2;
+    }
+}
+
+// SaveResponse - response for Save method
+message SaveResponse {
+}
+
+// ServiceDescription describes the service whose memory stats is being tracked
+message ServiceDescription {
+    // type - service entity in general
+    string type = 1;
+    // instance - description of a particular service instance
+    string instance = 2;
+}
+
+// Measurement contains instantaneous memory usage stats
+message Measurement {
+    // observed_at - measurement timestamp
+    google.protobuf.Timestamp observed_at = 1;
+    // locations - list of known memory allocations occured in a process
+    repeated Location locations = 2;
+}
+
+// Location contains memory allocation stats with
+// information about where memory was actually allocated
+message Location {
+    MemoryUsage memory_usage = 1;
+    CallStack call_stack = 2;
+}
+
+// MemoryUsage contains memory usage stats for a particular call stack;
+// this stats comes directly from Go runtime
+message MemoryUsage {
+    int64 InUseObjects = 1;
+    int64 InUseBytes = 2;
+    int64 AllocObjects = 3;
+    int64 AllocBytes = 4;
+}
+
+// CallStack describes call stack of memory allocation event
+message CallStack {
+    repeated StackFrame frames = 1;
+}
+
+// StackFrame provides information about a single stack frame
+message StackFrame {
+    string Name = 1;
+    string File = 2;
+    int32 Line = 3;
+}
+

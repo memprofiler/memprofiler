@@ -5,44 +5,21 @@ import (
 	"fmt"
 	"io"
 	"runtime"
-	"strconv"
 	"strings"
+
+	"github.com/vitalyisaev2/memprofiler/schema"
 )
 
-// Measurement provides an instantaneous memory usage stats
-type Measurement struct {
-	Timestamp int64       `json:"timestamp"`
-	Locations []*Location `json:"locations"`
-}
-
-// Location describes memory stats and the code where it was allocated
-type Location struct {
-	Stack       *Stack       `json:"stack"`
-	MemoryUsage *MemoryUsage `json:"memory_usage"`
-}
-
-// MemoryUsage keeps memory profiler records
-type MemoryUsage struct {
-	InUseObjects int64 `json:"in_use_objects"`
-	InUseBytes   int64 `json:"in_use_bytes"`
-	AllocObjects int64 `json:"alloc_objects"`
-	AllocBytes   int64 `json:"alloc_bytes"`
-}
-
-func (mu *MemoryUsage) update(r *runtime.MemProfileRecord) {
+// updateMemoryUsage updates MemoryUsage fields with values obtained from runtime
+func updateMemoryUsage(mu *schema.MemoryUsage, r *runtime.MemProfileRecord) {
 	mu.InUseObjects += r.InUseObjects()
 	mu.InUseBytes += r.InUseBytes()
 	mu.AllocObjects += r.AllocObjects
 	mu.AllocBytes += r.AllocBytes
 }
 
-// Stack describes the call stack of memory allocations
-type Stack struct {
-	Records []*StackRecord
-}
-
-// fill uses raw data to populate stack
-func (s *Stack) fill(rawStack []uintptr, allFrames bool) {
+// fillStack uses raw data to populate stack
+func fillStack(cs *schema.CallStack, rawStack []uintptr, allFrames bool) {
 	var (
 		show   = allFrames
 		frames = runtime.CallersFrames(rawStack)
@@ -54,8 +31,8 @@ func (s *Stack) fill(rawStack []uintptr, allFrames bool) {
 			show = true
 		} else if name != "runtime.goexit" && (show || !strings.HasPrefix(name, "runtime.")) {
 			show = true
-			record := &StackRecord{Name: name, File: frame.File, Line: frame.Line}
-			s.Records = append(s.Records, record)
+			frame := &schema.StackFrame{Name: name, File: frame.File, Line: int32(frame.Line)}
+			cs.Frames = append(cs.Frames, frame)
 		}
 		if !more {
 			break
@@ -63,16 +40,16 @@ func (s *Stack) fill(rawStack []uintptr, allFrames bool) {
 	}
 
 	if !show {
-		s.fill(rawStack, true)
+		fillStack(cs, rawStack, true)
 	}
 }
 
-// hashing helps to compare stacks
-func (s *Stack) hash() (string, error) {
+// hashStack computes a hash value for a stack (useful for stack comparison etc.)
+func hashStack(cs *schema.CallStack) (string, error) {
 	h := md5.New()
 
-	for _, sr := range s.Records {
-		if _, err := io.WriteString(h, sr.dump()); err != nil {
+	for _, sf := range cs.Frames {
+		if _, err := io.WriteString(h, dumpStackFrame(sf)); err != nil {
 			return "", err
 		}
 	}
@@ -80,13 +57,6 @@ func (s *Stack) hash() (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
-// StackRecord describes the frame of call stack
-type StackRecord struct {
-	Name string `json:"name"`
-	File string `json:"file"`
-	Line int    `json:"line"`
-}
-
-func (sr *StackRecord) dump() string {
-	return sr.Name + sr.File + strconv.Itoa(sr.Line)
+func dumpStackFrame(sf *schema.StackFrame) string {
+	return fmt.Sprintf("%s:%s:%d", sf.GetName(), sf.GetFile(), sf.GetLine())
 }

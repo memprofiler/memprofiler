@@ -7,8 +7,9 @@ import (
 	"runtime"
 	"sort"
 	"sync"
-	"time"
 
+	"github.com/golang/protobuf/ptypes"
+	"github.com/vitalyisaev2/memprofiler/schema"
 	"golang.org/x/time/rate"
 )
 
@@ -60,31 +61,31 @@ func (p *defaultProfiler) loop() {
 	}
 }
 
-func (p *defaultProfiler) measure() (*Measurement, error) {
+func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 
-	stacks := make(map[string]*Location)
+	stacks := make(map[string]*schema.Location)
 	records := getMemProfileRecords()
 
 	for _, record := range records {
-		s := &Stack{}
-		s.fill(record.Stack(), false)
-		id, err := s.hash()
+		cs := &schema.CallStack{}
+		fillStack(cs, record.Stack(), false)
+		id, err := hashStack(cs)
 		if err != nil {
 			return nil, err
 		}
 
 		location, exists := stacks[id]
 		if !exists {
-			location = &Location{Stack: s, MemoryUsage: &MemoryUsage{}}
+			location = &schema.Location{CallStack: cs, MemoryUsage: &schema.MemoryUsage{}}
 			stacks[id] = location
 		}
 
-		location.MemoryUsage.update(&record)
+		updateMemoryUsage(location.MemoryUsage, &record)
 	}
 
-	mm := &Measurement{
-		Timestamp: time.Now().Unix(),
-		Locations: make([]*Location, len(stacks)),
+	mm := &schema.Measurement{
+		ObservedAt: ptypes.TimestampNow(),
+		Locations:  make([]*schema.Location, 0, len(stacks)),
 	}
 
 	for _, location := range stacks {
