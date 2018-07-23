@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -16,9 +17,14 @@ import (
 
 var _ storage.Service = (*defaultStorage)(nil)
 
+// defaultStorage uses filesystem for a file
 type defaultStorage struct {
 	codec codec
 	cfg   *config.FilesystemStorageConfig
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 const (
@@ -27,6 +33,14 @@ const (
 )
 
 func (s *defaultStorage) SaveMeasurement(desc *schema.ServiceDescription, measurement *schema.Measurement) error {
+
+	select {
+	case <-s.ctx.Done():
+		return s.ctx.Err()
+	default:
+		s.wg.Add(1)
+		defer s.wg.Done()
+	}
 
 	// obtain directory to store data coming from a particular service instance
 	subdirPath := s.makeSubdirPath(desc)
@@ -67,13 +81,21 @@ func (s *defaultStorage) SaveMeasurement(desc *schema.ServiceDescription, measur
 	return nil
 }
 
-func (d *defaultStorage) LoadAllMeasurements(
+func (s *defaultStorage) LoadAllMeasurements(
 	ctx context.Context,
 	desc *schema.ServiceDescription,
 ) (<-chan *storage.LoadResult, error) {
 
+	select {
+	case <-s.ctx.Done():
+		return nil, s.ctx.Err()
+	default:
+		s.wg.Add(1)
+		defer s.wg.Done()
+	}
+
 	// prepare list of files with measurement dumps
-	subdirPath := d.makeSubdirPath(desc)
+	subdirPath := s.makeSubdirPath(desc)
 	files, err := ioutil.ReadDir(subdirPath)
 	if err != nil {
 		return nil, err
@@ -85,7 +107,7 @@ func (d *defaultStorage) LoadAllMeasurements(
 		defer close(results)
 		for _, file := range files {
 			select {
-			case results <- d.loadSingleFile(file.Name()):
+			case results <- s.loadSingleMeasurement(file.Name()):
 			case <-ctx.Done():
 				return
 			}
@@ -95,7 +117,8 @@ func (d *defaultStorage) LoadAllMeasurements(
 	return results, nil
 }
 
-func (d *defaultStorage) loadSingleFile(filePath string) (result *storage.LoadResult) {
+// loadSingleMeasurement reads single measurement from file
+func (d *defaultStorage) loadSingleMeasurement(filePath string) (result *storage.LoadResult) {
 	result = &storage.LoadResult{}
 
 	fd, err := os.OpenFile(filePath, os.O_RDONLY, filePermissions)
@@ -113,14 +136,6 @@ func (d *defaultStorage) loadSingleFile(filePath string) (result *storage.LoadRe
 
 	result.Measurement = &measurement
 	return
-}
-
-func (d *defaultStorage) LoadServices() ([]*schema.ServiceDescription, error) {
-	panic("not implemented")
-}
-
-func (d *defaultStorage) Quit() {
-	// TODO: implement graceful stop here to prevent data corruption
 }
 
 // makeSubdirPath builds a path for a filesystem direcory with instance data
@@ -145,9 +160,54 @@ func (d *defaultStorage) makeFilePath(subdirPath string, tstamp *timestamp.Times
 	return filepath.Join(subdirPath, dump), nil
 }
 
+func (s *defaultStorage) LoadServices() ([]*schema.ServiceDescription, error) {
+
+	select {
+	case <-s.ctx.Done():
+		return nil, s.ctx.Err()
+	default:
+		s.wg.Add(1)
+		defer s.wg.Done()
+	}
+
+	// traverse root directory and extract second level subdirectories
+	// in order to obtain list of services
+	subdirs1, err := ioutil.ReadDir(s.cfg.DataDir)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]*schema.ServiceDescription, 0)
+
+	for _, s1 := range subdirs1 {
+		if s1.IsDir() {
+			subdirs2, err := ioutil.ReadDir(s1.Name())
+			if err != nil {
+				return nil, err
+			}
+			for _, s2 := range subdirs2 {
+				results = append(
+					results,
+					&schema.ServiceDescription{Type: s1.Name(), Instance: s2.Name()},
+				)
+			}
+		}
+	}
+
+	return results, nil
+}
+
+func (d *defaultStorage) Quit() {
+	d.cancel()
+	d.wg.Wait()
+}
+
 func NewStorage(cfg *config.FilesystemStorageConfig) (storage.Service, error) {
+	ctx, cancel := context.WithCancel(context.Background())
 	s := &defaultStorage{
-		cfg: cfg,
+		cfg:    cfg,
+		ctx:    ctx,
+		cancel: cancel,
+		wg:     sync.WaitGroup{},
 	}
 	return s, nil
 }

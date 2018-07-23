@@ -4,6 +4,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/server/config"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
+	"github.com/vitalyisaev2/memprofiler/server/storage/filesystem"
 )
 
 // Locator stores various server subsystems
@@ -20,10 +21,26 @@ func newLogger(cfg *config.LoggingConfig) *logrus.Logger {
 
 // NewLocator creates new Locator
 func NewLocator(cfg *config.Config) (*Locator, error) {
-	var l Locator
+	var (
+		l   Locator
+		err error
+	)
 
+	// 1. run logger
 	l.Logger = newLogger(cfg.Logging)
-	l.Storage = nil
 
-	return nil, nil
+	// 2. run storage
+	if cfg.Storage.Filesystem != nil {
+		l.Storage, err = filesystem.NewStorage(cfg.Storage.Filesystem)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &l, err
+}
+
+func (l *Locator) Quit() {
+	l.Storage.Quit()
 }
