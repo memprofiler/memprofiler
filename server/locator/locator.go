@@ -2,6 +2,7 @@ package locator
 
 import (
 	"github.com/sirupsen/logrus"
+	"github.com/vitalyisaev2/memprofiler/server/collector"
 	"github.com/vitalyisaev2/memprofiler/server/config"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
 	"github.com/vitalyisaev2/memprofiler/server/storage/filesystem"
@@ -9,8 +10,9 @@ import (
 
 // Locator stores various server subsystems
 type Locator struct {
-	Storage storage.Service
-	Logger  *logrus.Logger
+	Storage   storage.Service
+	Collector collector.Service
+	Logger    *logrus.Logger
 }
 
 func newLogger(cfg *config.LoggingConfig) *logrus.Logger {
@@ -33,10 +35,12 @@ func NewLocator(cfg *config.Config) (*Locator, error) {
 	if cfg.Storage.Filesystem != nil {
 		l.Storage, err = filesystem.NewStorage(cfg.Storage.Filesystem)
 	}
-
 	if err != nil {
 		return nil, err
 	}
+
+	// 3. run measurement collector
+	l.Collector = collector.New()
 
 	return &l, err
 }

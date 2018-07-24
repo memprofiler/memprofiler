@@ -5,3 +5,4 @@ generate:
 	go generate ./...
 
 build: schema generate
+	go build -o memprofiler github.com/vitalyisaev2/memprofiler/server
