@@ -7,23 +7,43 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/utils"
+	"gonum.org/v1/gonum/stat"
 )
 
+type series struct {
+	values []float64
+	slope  float64
+}
+
+func (s *series) add(value float64) {
+	// append value to array
+	s.values = append(s.values, value)
+}
+
+// heapStats contains raw data and statistics for
+// heap usage indicators provided by runtime
 type heapStats struct {
-	inUseObjects []float64
-	inUseBytes   []float64
-	allocObjects []float64
-	allocBytes   []float64
-	tstamps      []float64
+	inUseObjects *series
+	inUseBytes   *series
+	allocObjects *series
+	allocBytes   *series
+	tstamps      *series
 }
 
 // updateSeries grows times series with provided measurement
 func (hs *heapStats) updateSeries(mu *schema.MemoryUsage, tstamp time.Time) {
-	hs.inUseObjects = append(hs.inUseObjects, float64(mu.InUseObjects))
-	hs.inUseBytes = append(hs.inUseBytes, float64(mu.InUseBytes))
-	hs.allocObjects = append(hs.allocObjects, float64(mu.AllocObjects))
-	hs.allocBytes = append(hs.allocBytes, float64(mu.AllocBytes))
-	hs.tstamps = append(hs.tstamps, utils.TimeToFloat64(tstamp))
+	hs.inUseObjects.add(float64(mu.InUseObjects))
+	hs.inUseBytes.add(float64(mu.InUseBytes))
+	hs.allocObjects.add(float64(mu.AllocObjects))
+	hs.allocBytes.add(float64(mu.AllocBytes))
+	hs.tstamps.add(utils.TimeToFloat64(tstamp))
+}
+
+func (hs *heapStats) computeRegression() {
+	_, hs.inUseObjects.slope = stat.LinearRegression(hs.tstamps.values, hs.inUseObjects.values, nil, false)
+	_, hs.inUseBytes.slope = stat.LinearRegression(hs.tstamps.values, hs.inUseBytes.values, nil, false)
+	_, hs.allocObjects.slope = stat.LinearRegression(hs.tstamps.values, hs.allocObjects.values, nil, false)
+	_, hs.allocBytes.slope = stat.LinearRegression(hs.tstamps.values, hs.allocBytes.values, nil, false)
 }
 
 type instanceStats struct {
@@ -67,6 +87,7 @@ func (is *instanceStats) registerMeasurement(mm *schema.Measurement) error {
 
 		// put measurement to the time series
 		data.updateSeries(location.GetMemoryUsage(), tstamp)
+		data.computeRegression()
 	}
 
 	return nil
