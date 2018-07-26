@@ -23,7 +23,7 @@ type saveProtocol interface {
 	setState(saveState)
 	setDescription(*schema.ServiceDescription) error
 	getDescription() *schema.ServiceDescription
-	getStorage() storage.Service
+	getStorage() storage.Storage
 }
 
 type saveStateCode int8
@@ -38,7 +38,7 @@ const (
 type defaultSaveProtocol struct {
 	saveState
 	desc    *schema.ServiceDescription
-	storage storage.Service
+	storage storage.Storage
 	logger  *logrus.Logger
 }
 
@@ -60,7 +60,7 @@ func (p *defaultSaveProtocol) getDescription() *schema.ServiceDescription {
 	return p.desc
 }
 
-func (p *defaultSaveProtocol) getStorage() storage.Service {
+func (p *defaultSaveProtocol) getStorage() storage.Storage {
 	return p.storage
 }
 

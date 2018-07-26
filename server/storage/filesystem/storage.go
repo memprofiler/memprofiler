@@ -15,9 +15,9 @@ import (
 	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
-var _ storage.Service = (*defaultStorage)(nil)
+var _ storage.Storage = (*defaultStorage)(nil)
 
-// defaultStorage uses filesystem for a file
+// defaultStorage uses filesystem as a persistent storage
 type defaultStorage struct {
 	codec codec
 	cfg   *config.FilesystemStorageConfig
@@ -32,14 +32,13 @@ const (
 	filePermissions = 0644
 )
 
-func (s *defaultStorage) SaveMeasurement(desc *schema.ServiceDescription, measurement *schema.Measurement) error {
+func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.DataSaver, error) {
 
 	select {
 	case <-s.ctx.Done():
-		return s.ctx.Err()
+		return nil, s.ctx.Err()
 	default:
 		s.wg.Add(1)
-		defer s.wg.Done()
 	}
 
 	// obtain directory to store data coming from a particular service instance
@@ -47,95 +46,45 @@ func (s *defaultStorage) SaveMeasurement(desc *schema.ServiceDescription, measur
 	if _, err := os.Stat(subdirPath); err != nil {
 
 		if !os.IsNotExist(err) {
-			return err
+			return nil, err
 		}
 
 		// create directory if it doesn't exist
 		if err = os.MkdirAll(subdirPath, dirPermissions); err != nil {
-			return fmt.Errorf("failed to create directory for service data: %v", err)
+			return nil, fmt.Errorf("failed to create directory for service data: %v", err)
 		}
 	}
 
-	// open file for writing
-	filePath, err := s.makeFilePath(subdirPath, measurement.GetObservedAt())
-	if err != nil {
-		return fmt.Errorf("failed to make path for file to store measurement: %v", err)
-	}
-	fd, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, filePermissions)
-	if err != nil {
-		return err
-	}
-	defer fd.Close()
-
-	// serialize measurement into the file
-	if err := s.codec.encode(fd, measurement); err != nil {
-		return err
+	saver := &defaultDataSaver{
+		subdirPath: subdirPath,
+		codec:      s.codec,
+		sessionID:  "", // FIXME: fill it
+		cfg:        s.cfg,
+		wg:         &s.wg,
 	}
 
-	// sync file if needed
-	if s.cfg.SyncWrite {
-		if err := fd.Sync(); err != nil {
-			return err
-		}
-	}
-	return nil
+	return saver, nil
 }
 
-func (s *defaultStorage) LoadAllMeasurements(
-	ctx context.Context,
-	desc *schema.ServiceDescription,
-) (<-chan *storage.LoadResult, error) {
+func (s *defaultStorage) NewDataLoader(desc *schema.ServiceDescription) (storage.DataLoader, error) {
 
 	select {
 	case <-s.ctx.Done():
 		return nil, s.ctx.Err()
 	default:
 		s.wg.Add(1)
-		defer s.wg.Done()
 	}
 
 	// prepare list of files with measurement dumps
 	subdirPath := s.makeSubdirPath(desc)
-	files, err := ioutil.ReadDir(subdirPath)
-	if err != nil {
-		return nil, err
+
+	loader := &defaultDataLoader{
+		subdirPath: subdirPath,
+		codec:      s.codec,
+		sessionID:  "", // FIXME: fill it
+		wg:         &s.wg,
 	}
-
-	// take files from disk, deserialize it and send it to the caller asynchronously
-	results := make(chan *storage.LoadResult)
-	go func() {
-		defer close(results)
-		for _, file := range files {
-			select {
-			case results <- s.loadSingleMeasurement(file.Name()):
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-
-	return results, nil
-}
-
-// loadSingleMeasurement reads single measurement from file
-func (d *defaultStorage) loadSingleMeasurement(filePath string) (result *storage.LoadResult) {
-	result = &storage.LoadResult{}
-
-	fd, err := os.OpenFile(filePath, os.O_RDONLY, filePermissions)
-	if err != nil {
-		result.Err = err
-		return
-	}
-	defer fd.Close()
-
-	var measurement schema.Measurement
-	if err := d.codec.decode(fd, &measurement); err != nil {
-		result.Err = err
-		return
-	}
-
-	result.Measurement = &measurement
-	return
+	return loader, nil
 }
 
 // makeSubdirPath builds a path for a filesystem direcory with instance data
@@ -146,7 +95,7 @@ func (d *defaultStorage) makeSubdirPath(desc *schema.ServiceDescription) string 
 const timeFormat = "%d%02d%02d-%02d%02d%02d"
 
 // makeFilePath creates a path for a file to store a distinct measurement
-func (d *defaultStorage) makeFilePath(subdirPath string, tstamp *timestamp.Timestamp) (string, error) {
+func makeFilePath(subdirPath string, tstamp *timestamp.Timestamp) (string, error) {
 
 	t, err := ptypes.Timestamp(tstamp)
 	if err != nil {
@@ -160,7 +109,7 @@ func (d *defaultStorage) makeFilePath(subdirPath string, tstamp *timestamp.Times
 	return filepath.Join(subdirPath, dump), nil
 }
 
-func (s *defaultStorage) LoadServices() ([]*schema.ServiceDescription, error) {
+func (s *defaultStorage) ServiceMeta() ([]*storage.ServiceMeta, error) {
 
 	select {
 	case <-s.ctx.Done():
@@ -176,7 +125,7 @@ func (s *defaultStorage) LoadServices() ([]*schema.ServiceDescription, error) {
 	if err != nil {
 		return nil, err
 	}
-	results := make([]*schema.ServiceDescription, 0)
+	results := make([]*storage.ServiceMeta, 0)
 
 	for _, s1 := range subdirs1 {
 		if s1.IsDir() {
@@ -187,7 +136,12 @@ func (s *defaultStorage) LoadServices() ([]*schema.ServiceDescription, error) {
 			for _, s2 := range subdirs2 {
 				results = append(
 					results,
-					&schema.ServiceDescription{Type: s1.Name(), Instance: s2.Name()},
+					&storage.ServiceMeta{
+						Description: &schema.ServiceDescription{
+							Type:     s1.Name(),
+							Instance: s2.Name(),
+						},
+					},
 				)
 			}
 		}
@@ -201,7 +155,7 @@ func (d *defaultStorage) Quit() {
 	d.wg.Wait()
 }
 
-func NewStorage(cfg *config.FilesystemStorageConfig) (storage.Service, error) {
+func NewStorage(cfg *config.FilesystemStorageConfig) (storage.Storage, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	s := &defaultStorage{
 		cfg:    cfg,

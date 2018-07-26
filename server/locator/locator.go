@@ -10,7 +10,7 @@ import (
 
 // Locator stores various server subsystems
 type Locator struct {
-	Storage   storage.Service
+	Storage   storage.Storage
 	Collector collector.Service
 	Logger    *logrus.Logger
 }
@@ -45,6 +45,7 @@ func NewLocator(cfg *config.Config) (*Locator, error) {
 	return &l, err
 }
 
+// Quit terminates subsystems gracefully
 func (l *Locator) Quit() {
 	l.Storage.Quit()
 }
