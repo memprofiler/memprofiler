@@ -7,12 +7,24 @@ import (
 	"github.com/vitalyisaev2/memprofiler/server/common"
 )
 
-// Storage provides interface for storing and loading discrete measurements
+// Storage keeps service's measurements
 type Storage interface {
-	NewDataSaver(*schema.ServiceDescription) (DataSaver, error)
-	NewDataLoader(*schema.ServiceDescription) (DataLoader, error)
-	ServiceMeta() ([]*ServiceMeta, error)
+	DataStorage
+	MetadataStorage
 	common.Subsystem
+}
+
+// DataStorage provides interface for storing and loading service measurements
+type DataStorage interface {
+	NewDataSaver(*schema.ServiceDescription) (DataSaver, error)
+	NewDataLoader(*schema.ServiceDescription, SessionID) (DataLoader, error)
+}
+
+// MetadataStorage keeps metainformation about service measurements
+type MetadataStorage interface {
+	Services() []string
+	Instances(string) []string
+	Sessions(*schema.ServiceDescription) []SessionID
 }
 
 // DataSaver is responsible for saving service instance data into the storage
@@ -29,7 +41,7 @@ type DataSaver interface {
 // DataLoader is responsible for obtaining service instance data from storage
 type DataLoader interface {
 	// Load loads all the measurements that belong to the particular service;
-	Load(context.Context, SessionID) (<-chan *LoadResult, error)
+	Load(context.Context) (<-chan *LoadResult, error)
 	// Close should be called when the receiver don't to load data anymore;
 	// this call interrupts measurement streaming session
 	Close()
@@ -40,10 +52,6 @@ type LoadResult struct {
 	Measurement *schema.Measurement
 	Err         error
 }
-
-// SessionID is a unique identifier for a measurement streaming session;
-// all the sessions will be ordered by this string value
-type SessionID string
 
 // ServiceMeta provides metainformation about stored service data
 type ServiceMeta struct {

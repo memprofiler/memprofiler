@@ -17,10 +17,7 @@ type defaultDataLoader struct {
 	wg         *sync.WaitGroup
 }
 
-func (l *defaultDataLoader) Load(
-	ctx context.Context,
-	sessionID storage.SessionID,
-) (<-chan *storage.LoadResult, error) {
+func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResult, error) {
 
 	files, err := ioutil.ReadDir(l.subdirPath)
 	if err != nil {

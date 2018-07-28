@@ -17,11 +17,15 @@ import (
 
 var _ storage.Storage = (*defaultStorage)(nil)
 
-// defaultStorage uses filesystem as a persistent storage
+// defaultStorage uses filesystem as a persistent storage;
+// services - first level subdirs;
+// instances - second level subdirs;
+// sessions - third level subdirs;
+// mesaurements - distinct files within sessions sundirs;
 type defaultStorage struct {
-	codec codec
-	cfg   *config.FilesystemStorageConfig
-
+	sessionStorage
+	codec  codec
+	cfg    *config.FilesystemStorageConfig
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -41,8 +45,11 @@ func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.
 		s.wg.Add(1)
 	}
 
+	// get new sessionID for this service instance
+	sessionID := s.sessionStorage.inc(desc)
+
 	// obtain directory to store data coming from a particular service instance
-	subdirPath := s.makeSubdirPath(desc)
+	subdirPath := s.makeSubdirPath(desc, sessionID)
 	if _, err := os.Stat(subdirPath); err != nil {
 
 		if !os.IsNotExist(err) {
@@ -57,8 +64,8 @@ func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.
 
 	saver := &defaultDataSaver{
 		subdirPath: subdirPath,
+		sessionID:  sessionID,
 		codec:      s.codec,
-		sessionID:  "", // FIXME: fill it
 		cfg:        s.cfg,
 		wg:         &s.wg,
 	}
@@ -66,7 +73,10 @@ func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.
 	return saver, nil
 }
 
-func (s *defaultStorage) NewDataLoader(desc *schema.ServiceDescription) (storage.DataLoader, error) {
+func (s *defaultStorage) NewDataLoader(
+	desc *schema.ServiceDescription,
+	sessionID storage.SessionID,
+) (storage.DataLoader, error) {
 
 	select {
 	case <-s.ctx.Done():
@@ -76,20 +86,28 @@ func (s *defaultStorage) NewDataLoader(desc *schema.ServiceDescription) (storage
 	}
 
 	// prepare list of files with measurement dumps
-	subdirPath := s.makeSubdirPath(desc)
+	subdirPath := s.makeSubdirPath(desc, sessionID)
 
 	loader := &defaultDataLoader{
 		subdirPath: subdirPath,
 		codec:      s.codec,
-		sessionID:  "", // FIXME: fill it
+		sessionID:  sessionID,
 		wg:         &s.wg,
 	}
 	return loader, nil
 }
 
 // makeSubdirPath builds a path for a filesystem direcory with instance data
-func (d *defaultStorage) makeSubdirPath(desc *schema.ServiceDescription) string {
-	return filepath.Join(d.cfg.DataDir, desc.GetType(), desc.GetInstance())
+func (s *defaultStorage) makeSubdirPath(
+	desc *schema.ServiceDescription,
+	sessionID storage.SessionID,
+) string {
+	return filepath.Join(
+		s.cfg.DataDir,
+		desc.GetType(),
+		desc.GetInstance(),
+		sessionID.String(),
+	)
 }
 
 const timeFormat = "%d%02d%02d-%02d%02d%02d"
@@ -109,59 +127,65 @@ func makeFilePath(subdirPath string, tstamp *timestamp.Timestamp) (string, error
 	return filepath.Join(subdirPath, dump), nil
 }
 
-func (s *defaultStorage) ServiceMeta() ([]*storage.ServiceMeta, error) {
+func (s *defaultStorage) Quit() {
+	s.cancel()
+	s.wg.Wait()
+}
 
-	select {
-	case <-s.ctx.Done():
-		return nil, s.ctx.Err()
-	default:
-		s.wg.Add(1)
-		defer s.wg.Done()
-	}
+func (s *defaultStorage) populateSessionStorage() error {
 
-	// traverse root directory and extract second level subdirectories
-	// in order to obtain list of services
+	// traverse root directory and extract subdirectories
+	// in order to obtain list of services, instances, and sessions
 	subdirs1, err := ioutil.ReadDir(s.cfg.DataDir)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	results := make([]*storage.ServiceMeta, 0)
 
 	for _, s1 := range subdirs1 {
 		if s1.IsDir() {
 			subdirs2, err := ioutil.ReadDir(s1.Name())
 			if err != nil {
-				return nil, err
+				return err
 			}
 			for _, s2 := range subdirs2 {
-				results = append(
-					results,
-					&storage.ServiceMeta{
-						Description: &schema.ServiceDescription{
-							Type:     s1.Name(),
-							Instance: s2.Name(),
-						},
-					},
-				)
+				desc := &schema.ServiceDescription{Type: s1.Name(), Instance: s2.Name()}
+
+				subdirs3, err := ioutil.ReadDir(s2.Name())
+				if err != nil {
+					return err
+				}
+				for _, s3 := range subdirs3 {
+					if s3.IsDir() {
+						sessionID, err := storage.SessionIDFromString(s3.Name())
+						if err != nil {
+							return err
+						}
+						s.sessionStorage.register(desc, sessionID)
+					}
+				}
 			}
 		}
 	}
 
-	return results, nil
+	return nil
 }
 
-func (d *defaultStorage) Quit() {
-	d.cancel()
-	d.wg.Wait()
-}
-
+// NewStorage builds new storage that keeps measurements in separate files
 func NewStorage(cfg *config.FilesystemStorageConfig) (storage.Storage, error) {
 	ctx, cancel := context.WithCancel(context.Background())
+
 	s := &defaultStorage{
-		cfg:    cfg,
-		ctx:    ctx,
-		cancel: cancel,
-		wg:     sync.WaitGroup{},
+		codec:          &jsonCodec{},
+		sessionStorage: newSessionStorage(),
+		cfg:            cfg,
+		ctx:            ctx,
+		cancel:         cancel,
+		wg:             sync.WaitGroup{},
+	}
+
+	// traverse dirs and find previously stored data
+	if err := s.populateSessionStorage(); err != nil {
+		return nil, err
 	}
 	return s, nil
 }
