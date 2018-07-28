@@ -15,3 +15,7 @@ type saveStateAwaitMeasurement struct {
 func (s *saveStateAwaitMeasurement) addMeasurement(mm *schema.Measurement) error {
 	return s.dataSaver.Save(mm)
 }
+
+func (s *saveStateAwaitMeasurement) close(mm *schema.Measurement) error {
+	return s.dataSaver.Close()
+}

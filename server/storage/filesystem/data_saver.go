@@ -38,7 +38,7 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 		return err
 	}
 
-	// sync file if needed
+	// sync file if required
 	if s.cfg.SyncWrite {
 		if err := fd.Sync(); err != nil {
 			return err
@@ -47,6 +47,9 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 	return nil
 }
 
-func (s *defaultDataSaver) Close() { s.wg.Done() }
+func (s *defaultDataSaver) Close() error {
+	s.wg.Done()
+	return nil
+}
 
 func (s *defaultDataSaver) SessionID() storage.SessionID { return s.sessionID }

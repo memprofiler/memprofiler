@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"io"
 
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/common"
@@ -31,20 +32,16 @@ type MetadataStorage interface {
 type DataSaver interface {
 	// Save puts measurement into persistant storage
 	Save(*schema.Measurement) error
-	// Close should be called when the sender is gone;
-	// this call interrupts measurement streaming session
-	Close()
 	// SessionID returns ID assigned to current steaming session
 	SessionID() SessionID
+	io.Closer
 }
 
 // DataLoader is responsible for obtaining service instance data from storage
 type DataLoader interface {
 	// Load loads all the measurements that belong to the particular service;
 	Load(context.Context) (<-chan *LoadResult, error)
-	// Close should be called when the receiver don't to load data anymore;
-	// this call interrupts measurement streaming session
-	Close()
+	io.Closer
 }
 
 // LoadResult is a sum type for a result of a measurement load operation

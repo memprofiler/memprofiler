@@ -15,6 +15,7 @@ import (
 type saveState interface {
 	addDescription(*schema.ServiceDescription) error
 	addMeasurement(*schema.Measurement) error
+	close() error
 }
 
 // saveProtocol provides interface for handling save requests
@@ -31,7 +32,7 @@ type saveStateCode int8
 const (
 	awaitHeader saveStateCode = iota + 1
 	awaitMeasurement
-	broken
+	finished
 )
 
 // defaultSaveProtocol is a default implementation of saveProtocol

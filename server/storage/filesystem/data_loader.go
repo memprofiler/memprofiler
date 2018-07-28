@@ -61,4 +61,7 @@ func (l *defaultDataLoader) loadSingleMeasurement(filePath string) (result *stor
 	return
 }
 
-func (l *defaultDataLoader) Close() { l.wg.Done() }
+func (l *defaultDataLoader) Close() error {
+	l.wg.Done()
+	return nil
+}

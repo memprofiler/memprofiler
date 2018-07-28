@@ -1,20 +1,30 @@
 package api
 
-import "github.com/vitalyisaev2/memprofiler/schema"
+import (
+	"github.com/vitalyisaev2/memprofiler/schema"
+)
 
 var _ saveState = (*saveStateAwaitDescription)(nil)
 
 type saveStateAwaitDescription struct {
 	saveStateCommon
-	protocol saveProtocol
 }
 
 func (s *saveStateAwaitDescription) addDescription(desc *schema.ServiceDescription) error {
-	if err := s.protocol.setDescription(desc); err != nil {
-		s.switchState(broken)
+	if err := s.p.setDescription(desc); err != nil {
+		s.switchState(finished)
 		return err
 	}
 
-	s.switchState(awaitMeasurement)
+	dataSaver, err := s.p.getStorage().NewDataSaver(desc)
+	if err != nil {
+		return err
+	}
+
+	newState := &saveStateAwaitMeasurement{
+		saveStateCommon: saveStateCommon{code: awaitMeasurement, p: s.p},
+		dataSaver:       dataSaver,
+	}
+	s.p.setState(newState)
 	return nil
 }

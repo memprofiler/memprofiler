@@ -3,6 +3,8 @@ package api
 import (
 	"net"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/config"
 	"github.com/vitalyisaev2/memprofiler/server/locator"
@@ -15,6 +17,7 @@ type server struct {
 	grpcServer      *grpc.Server
 	listener        net.Listener
 	protocolFactory protocolFactory
+	logger          *logrus.Logger
 	errChan         chan<- error
 	cfg             *config.ServerConfig
 }
@@ -28,8 +31,16 @@ func (s *server) Stop() {
 }
 
 func (s *server) Save(stream schema.Memprofiler_SaveServer) error {
+
+	// create object that will be responsible for storing measurements
+	protocol := s.protocolFactory.save()
+	defer func() {
+		if err := protocol.close(); err != nil {
+			s.logger.WithError(err).Error("Failed to close save protocol")
+		}
+	}()
+
 	for {
-		protocol := s.protocolFactory.save()
 		request, err := stream.Recv()
 		if err != nil {
 			return err
