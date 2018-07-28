@@ -47,10 +47,10 @@ message Location {
 // MemoryUsage contains memory usage stats for a particular call stack;
 // this stats comes directly from Go runtime
 message MemoryUsage {
-    int64 InUseObjects = 1;
-    int64 InUseBytes = 2;
-    int64 AllocObjects = 3;
-    int64 AllocBytes = 4;
+    int64 AllocObjects = 1;
+    int64 AllocBytes = 2;
+    int64 FreeObjects = 3;
+    int64 FreeBytes = 4;
 }
 
 // CallStack describes call stack of memory allocation event

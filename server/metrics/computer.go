@@ -19,7 +19,11 @@ type defaultComputer struct {
 
 // ComputeSessionMetrics caches whole session data and computes statistics;
 // perhaps it worth make same effort to limit memory consumption
-func (c *defaultComputer) ComputeSessionMetrics(ctx context.Context, dataLoader storage.DataLoader) ([]*Location, error) {
+func (c *defaultComputer) ComputeSessionMetrics(
+	ctx context.Context,
+	dataLoader storage.DataLoader,
+) ([]*LocationMetrics, error) {
+
 	c.wg.Add(1)
 	defer func() {
 		if err := dataLoader.Close(); err != nil {

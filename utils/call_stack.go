@@ -12,10 +12,10 @@ import (
 
 // UpdateMemoryUsage updates MemoryUsage fields with values obtained from runtime
 func UpdateMemoryUsage(mu *schema.MemoryUsage, r *runtime.MemProfileRecord) {
-	mu.InUseObjects += r.InUseObjects()
-	mu.InUseBytes += r.InUseBytes()
 	mu.AllocObjects += r.AllocObjects
 	mu.AllocBytes += r.AllocBytes
+	mu.FreeObjects += r.FreeObjects
+	mu.FreeBytes += r.FreeBytes
 }
 
 // FillCallStack uses raw data to populate stack

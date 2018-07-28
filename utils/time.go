@@ -1,13 +1,22 @@
 package utils
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
-func TimeToFloat64(tstamp time.Time) float64 {
-	return float64(tstamp.UnixNano())
+const (
+	nanosecondsInSecond = float64(time.Second / time.Nanosecond)
+)
+
+// TimeToFloat64 converts timestamp to float64 (in seconds)
+func TimeToFloat64(tstamp *time.Time) float64 {
+	return float64(tstamp.UnixNano()) / nanosecondsInSecond
 }
 
-func Float64ToTime(f float64) time.Time {
-	sec := int64(f) / (int64(time.Second) / int64(time.Nanosecond))
-	nsec := int64(f) % int64(time.Second)
-	return time.Unix(sec, nsec)
+// Float64ToTime converts float time (seconds) to *time.Time
+func Float64ToTime(f float64) *time.Time {
+	sec, nsec := math.Modf(f)
+	result := time.Unix(int64(sec), int64(nsec*nanosecondsInSecond))
+	return &result
 }
