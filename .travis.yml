@@ -1,11 +1,11 @@
 language: go
 
 go:
-  - tip
+  - 1.10
 
 before_install:
-  - go get -t -v ./...
   - make deps
+  - go get -t -v ./...
   - make build
 
 script:
