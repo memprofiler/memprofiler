@@ -5,8 +5,8 @@ go:
 
 before_install:
   - make deps
-  - go get -t -v ./...
   - make build
+  - go get -t -v ./...
 
 script:
   - go test -coverprofile=coverage.txt -covermode=atomic
