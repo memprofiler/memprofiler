@@ -58,7 +58,7 @@ LOOP:
 		}
 	}
 
-	return nil, nil
+	return ss.computeStatistics(), nil
 }
 
 func (c *defaultComputer) Quit() {

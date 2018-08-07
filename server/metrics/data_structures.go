@@ -11,7 +11,7 @@ import (
 )
 
 // locationStats contains raw data about memory allocations
-// that happend in a particular location
+// that happened at particular location in application code
 type locationStats struct {
 	inUseBytes   []float64
 	inUseObjects []float64
@@ -130,7 +130,7 @@ func (ls *locationStats) computeInUse(
 	}
 }
 
-// computeHeapConsumptionRate computes rate values for every indicator
+// computeHeapConsumptionRate estimates rate values for every indicator
 func (ls *locationStats) computeHeapConsumptionRate(tstamps []float64, ix int) *HeapConsumptionRates {
 
 	var (
@@ -222,8 +222,16 @@ func (ss *sessionStats) registerMeasurement(mm *schema.Measurement) error {
 	return nil
 }
 
+// FIXME: move to config
+const recent = time.Second
+
 func (ss *sessionStats) computeStatistics() []*LocationMetrics {
-	return nil
+	results := make([]*LocationMetrics, 0, len(ss.locations))
+	for _, ls := range ss.locations {
+		lm := ls.toLocationMetrics(recent)
+		results = append(results, lm)
+	}
+	return results
 }
 
 func newSessionStats() *sessionStats {

@@ -6,3 +6,5 @@ schema/*pb.go
 
 # binary
 memprofiler
+
+.idea
