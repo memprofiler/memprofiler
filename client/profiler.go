@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/vitalyisaev2/memprofiler/schema"
+	"github.com/vitalyisaev2/memprofiler/utils"
 	"golang.org/x/time/rate"
 )
 
@@ -68,8 +69,8 @@ func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 
 	for _, record := range records {
 		cs := &schema.CallStack{}
-		fillStack(cs, record.Stack(), false)
-		id, err := hashStack(cs)
+		utils.FillCallStack(cs, record.Stack(), false)
+		id, err := utils.HashCallStack(cs)
 		if err != nil {
 			return nil, err
 		}
@@ -80,7 +81,7 @@ func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 			stacks[id] = location
 		}
 
-		updateMemoryUsage(location.MemoryUsage, &record)
+		utils.UpdateMemoryUsage(location.MemoryUsage, &record)
 	}
 
 	mm := &schema.Measurement{
