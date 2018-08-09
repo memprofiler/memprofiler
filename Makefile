@@ -1,4 +1,5 @@
 deps:
+	go get -u -v github.com/sirupsen/logrus 
 	go get -u -v -d google.golang.org/grpc
 	go get -u -v github.com/golang/protobuf/...
 	go get -u -v golang.org/x/tools/cmd/stringer
