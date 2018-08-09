@@ -1,6 +1,8 @@
 deps:
+	go get -u -v -d google.golang.org/grpc
+	go get -u -v -d github.com/golang/protobuf/...
+
 	go get -u -v golang.org/x/tools/cmd/stringer
-	go get -u -v github.com/golang/protobuf/protoc-gen-go
 
 schema:
 	protoc -I schema schema/memprofiler.proto --go_out=plugins=grpc:schema
