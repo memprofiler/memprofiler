@@ -52,16 +52,20 @@ func (s *server) Save(stream schema.Memprofiler_SaveServer) error {
 			err = protocol.addMeasurement(request.GetMeasurement())
 		}
 		if err != nil {
+			s.logger.WithError(err).Error("Save error")
 			return err
 		}
 	}
 }
 
+// NewAPI builds new GRPC server
 func NewAPI(
 	cfg *config.ServerConfig,
 	locator *locator.Locator,
 	errChan chan<- error,
 ) (Service, error) {
+
+	locator.Logger.WithField("endpoint", cfg.ListenEnpdoint).Debug("Starting listening")
 
 	listener, err := net.Listen("tcp", cfg.ListenEnpdoint)
 	if err != nil {

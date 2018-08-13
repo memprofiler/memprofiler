@@ -1,6 +1,7 @@
 package api
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/schema"
 )
 
@@ -11,6 +12,14 @@ type saveStateAwaitDescription struct {
 }
 
 func (s *saveStateAwaitDescription) addDescription(desc *schema.ServiceDescription) error {
+	// annotate logger
+	logger := s.p.getLogger().WithFields(logrus.Fields{
+		"type":     desc.GetType(),
+		"instance": desc.GetInstance(),
+	})
+	logger.Info("Received greeting message from client")
+
+	// try to set description
 	if err := s.p.setDescription(desc); err != nil {
 		s.switchState(finished)
 		return err

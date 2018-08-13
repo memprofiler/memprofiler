@@ -1,4 +1,4 @@
-package memprofiler
+package client
 
 import (
 	"context"
@@ -9,32 +9,26 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/ptypes"
+	"golang.org/x/time/rate"
+	"google.golang.org/grpc"
+
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/utils"
-	"golang.org/x/time/rate"
 )
 
-const (
-	profileRecords = 256
-)
-
-type Logger interface {
-	Debug(string)
-	Error(string)
-}
-
+// Profiler should keep working during whole application lifetime
 type Profiler interface {
 	Quit()
 }
 
 type defaultProfiler struct {
+	stream  schema.Memprofiler_SaveClient
 	limiter *rate.Limiter
-
-	cfg    *Config
-	logger Logger
-	wg     *sync.WaitGroup
-	ctx    context.Context
-	cancel context.CancelFunc
+	cfg     *Config
+	logger  Logger
+	wg      sync.WaitGroup
+	ctx     context.Context
+	cancel  context.CancelFunc
 }
 
 func (p *defaultProfiler) loop() {
@@ -42,26 +36,40 @@ func (p *defaultProfiler) loop() {
 
 	for {
 		if err := p.limiter.Wait(p.ctx); err != nil {
+			p.logger.Error(err.Error())
 			return
 		}
 
-		mm, err := p.measure()
-		if err != nil {
-			msg := fmt.Sprintf("Failed to obtain memory profile: %s", err.Error())
-			p.logger.Error(msg)
-		}
-
-		if p.cfg.DumpToLogger {
-			dump, err := json.Marshal(mm)
-			if err != nil {
-				p.logger.Error(fmt.Sprintf("Failed to marshal measurement: %s", err.Error()))
-			} else {
-				p.logger.Debug(string(dump))
-			}
+		if err := p.report(); err != nil {
+			p.logger.Error(err.Error())
 		}
 	}
 }
 
+// report gets new measurement and sends it to GRPC stream
+func (p *defaultProfiler) report() error {
+
+	// obtain new measurement
+	mm, err := p.measure()
+	if err != nil {
+		return fmt.Errorf("failed to obtain memory profile: %v", err)
+	}
+	p.maybeDumpMessage(mm)
+
+	// send it to server
+	msg := &schema.SaveRequest{
+		Payload: &schema.SaveRequest_Measurement{
+			Measurement: mm,
+		},
+	}
+	if err := p.stream.Send(msg); err != nil {
+		return fmt.Errorf("failed to send message to server: %v", err)
+	}
+
+	return nil
+}
+
+// take memory profiling data from runtime
 func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 
 	stacks := make(map[string]*schema.Location)
@@ -96,10 +104,29 @@ func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 	return mm, nil
 }
 
+func (p *defaultProfiler) maybeDumpMessage(mm *schema.Measurement) {
+	if p.cfg.Verbose {
+		dump, err := json.Marshal(mm)
+		if err != nil {
+			p.logger.Error(fmt.Sprintf("Failed to marshal measurement: %s", err.Error()))
+		} else {
+			p.logger.Debug(string(dump))
+		}
+	}
+}
+
 func (p *defaultProfiler) Quit() {
 	p.cancel()
 	p.wg.Wait()
+	msg, err := p.stream.CloseAndRecv()
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("Failed to close stream: %v", err))
+	} else {
+		p.logger.Debug(fmt.Sprintf("Final stream result: %v", msg))
+	}
 }
+
+const profileRecords = 256
 
 func getMemProfileRecords() []runtime.MemProfileRecord {
 
@@ -122,17 +149,55 @@ func getMemProfileRecords() []runtime.MemProfileRecord {
 }
 
 // NewProfiler launches new instance of memory profiler
-func NewProfiler(logger Logger, cfg *Config) Profiler {
+func NewProfiler(logger Logger, cfg *Config) (Profiler, error) {
 	ctx, cancel := context.WithCancel(context.Background())
+
+	stream, err := makeStream(ctx, cfg)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+
 	p := &defaultProfiler{
+		stream:  stream,
 		limiter: rate.NewLimiter(rate.Every(cfg.Periodicity), 1),
 		logger:  logger,
 		cfg:     cfg,
 		ctx:     ctx,
 		cancel:  cancel,
-		wg:      &sync.WaitGroup{},
+		wg:      sync.WaitGroup{},
 	}
 	p.wg.Add(1)
 	go p.loop()
-	return p
+
+	return p, nil
+}
+
+// makeStream initializes GRPC stream
+func makeStream(ctx context.Context, cfg *Config) (schema.Memprofiler_SaveClient, error) {
+
+	// prepare GRPC client
+	conn, err := grpc.Dial(cfg.ServerEndpoint, grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	c := schema.NewMemprofilerClient(conn)
+
+	// open client-side streaming
+	stream, err := c.Save(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// send greeting message to server
+	msg := &schema.SaveRequest{
+		Payload: &schema.SaveRequest_ServiceDescription{
+			ServiceDescription: cfg.ServiceDescription,
+		},
+	}
+	if err := stream.Send(msg); err != nil {
+		return nil, fmt.Errorf("failed to send greeting message")
+	}
+
+	return stream, nil
 }

@@ -1,13 +1,19 @@
-package memprofiler
+package client
 
-import "time"
+import (
+	"time"
 
+	"github.com/vitalyisaev2/memprofiler/schema"
+)
+
+// Config holds various settings for memprofiler client
 type Config struct {
-	// ProcessID helps to distinguish memory profile produced by this particular process
-	// (you can use app name, IP, node_id, whatever)
-	ProcessID string
-	// Periodicity sets time interval between memory usage measurements
+	// Remote memprofiler server address
+	ServerEndpoint string
+	// ServiceDescription will be used to identify data on the server side
+	ServiceDescription *schema.ServiceDescription
+	// Periodicity sets time interval between measurements
 	Periodicity time.Duration
-	// DumpToLogger enables measurement printing into logger
-	DumpToLogger bool
+	// Verbose enables measurement printing into logger
+	Verbose bool
 }

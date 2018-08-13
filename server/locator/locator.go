@@ -32,6 +32,7 @@ func NewLocator(cfg *config.Config) (*Locator, error) {
 	l.Logger = newLogger(cfg.Logging)
 
 	// 2. run storage
+	l.Logger.Debug("Starting storage")
 	if cfg.Storage.Filesystem != nil {
 		l.Storage, err = filesystem.NewStorage(cfg.Storage.Filesystem)
 	}
@@ -40,6 +41,7 @@ func NewLocator(cfg *config.Config) (*Locator, error) {
 	}
 
 	// 3. run measurement collector
+	l.Logger.Debug("Starting metrics computer")
 	l.Computer = metrics.New(l.Logger)
 
 	return &l, err
@@ -47,5 +49,8 @@ func NewLocator(cfg *config.Config) (*Locator, error) {
 
 // Quit terminates subsystems gracefully
 func (l *Locator) Quit() {
+	l.Logger.Debug("Stopping storage")
 	l.Storage.Quit()
+	l.Logger.Debug("Stopping metrics computer")
+	l.Computer.Quit()
 }

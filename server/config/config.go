@@ -11,7 +11,6 @@ type Config struct {
 	Server  *ServerConfig  `yaml:"server"`
 	Storage *StorageConfig `yaml:"storage"`
 	Logging *LoggingConfig `yaml:"logging"`
-	Metrics *MetricsConfig `yaml:"metrics"`
 }
 
 func (c *Config) Verify() error {

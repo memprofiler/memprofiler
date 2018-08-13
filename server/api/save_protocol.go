@@ -25,6 +25,8 @@ type saveProtocol interface {
 	setDescription(*schema.ServiceDescription) error
 	getDescription() *schema.ServiceDescription
 	getStorage() storage.Storage
+	getLogger() *logrus.Logger
+	setLogger(*logrus.Logger)
 }
 
 type saveStateCode int8
@@ -64,6 +66,10 @@ func (p *defaultSaveProtocol) getDescription() *schema.ServiceDescription {
 func (p *defaultSaveProtocol) getStorage() storage.Storage {
 	return p.storage
 }
+
+func (p *defaultSaveProtocol) getLogger() *logrus.Logger { return p.logger }
+
+func (p *defaultSaveProtocol) setLogger(l *logrus.Logger) { p.logger = l }
 
 func newSaveProtocol(locator *locator.Locator) saveProtocol {
 	p := &defaultSaveProtocol{

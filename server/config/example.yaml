@@ -1,0 +1,15 @@
+# server
+server:
+  listen_endpoint: "0.0.0.0:8001"
+
+# storage
+storage:
+  filesystem:
+    data_dir: "/tmp/memprofiler"
+    sync_write: false
+
+# logging
+logging:
+  level: "debug"
+
+# metrics
