@@ -68,7 +68,7 @@ func TestDefaultComputer_ComputeSessionMetrics_LinearGrowth(t *testing.T) {
 	dl.On("Load", stubCtx).Return(ch, errOK).Once()
 	dl.On("Close").Return(errOK).Once()
 
-	result, err := c.ComputeSessionMetrics(stubCtx, dl)
+	result, err := c.SessionMetrics(stubCtx, dl)
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
 	assert.Equal(t, cs, result[0].CallStack)
