@@ -1,4 +1,5 @@
 deps:
+	go get -u -v github.com/julienschmidt/httprouter
 	go get -u -v github.com/sirupsen/logrus 
 	go get -u -v google.golang.org/grpc
 	go get -u -v github.com/golang/protobuf/...
