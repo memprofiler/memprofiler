@@ -10,7 +10,7 @@ import (
 
 // Computer is responsible for counting memory usage metrics from data
 type Computer interface {
-	ComputeSessionMetrics(context.Context, storage.DataLoader) ([]*LocationMetrics, error)
+	SessionMetrics(context.Context, storage.DataLoader) ([]*LocationMetrics, error)
 	common.Subsystem
 }
 

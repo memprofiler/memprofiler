@@ -11,15 +11,15 @@ import (
 var _ Computer = (*defaultComputer)(nil)
 
 type defaultComputer struct {
-	logger *logrus.Logger
+	logger logrus.FieldLogger
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 }
 
-// ComputeSessionMetrics caches whole session data and computes statistics;
+// SessionMetrics caches whole session data and computes statistics;
 // perhaps it worth make same effort to limit memory consumption
-func (c *defaultComputer) ComputeSessionMetrics(
+func (c *defaultComputer) SessionMetrics(
 	ctx context.Context,
 	dataLoader storage.DataLoader,
 ) ([]*LocationMetrics, error) {
@@ -47,7 +47,7 @@ LOOP:
 				break LOOP
 			}
 			if data.Err != nil {
-				c.logger.WithError(err).Error("Failed to get data from loader")
+				c.logger.WithError(data.Err).Error("Failed to get data from loader")
 			} else {
 				ss.registerMeasurement(data.Measurement)
 			}
@@ -67,7 +67,7 @@ func (c *defaultComputer) Quit() {
 }
 
 // New instantiates new Computer
-func New(logger *logrus.Logger) Computer {
+func New(logger logrus.FieldLogger) Computer {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &defaultComputer{
 		logger: logger,

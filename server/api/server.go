@@ -18,9 +18,9 @@ type server struct {
 	grpcServer      *grpc.Server
 	listener        net.Listener
 	protocolFactory protocolFactory
-	logger          *logrus.Logger
+	logger          logrus.FieldLogger
 	errChan         chan<- error
-	cfg             *config.ServerConfig
+	cfg             *config.APIConfig
 }
 
 func (s *server) Start() {
@@ -60,14 +60,12 @@ func (s *server) Save(stream schema.Memprofiler_SaveServer) error {
 	}
 }
 
-// NewAPI builds new GRPC server
-func NewAPI(
-	cfg *config.ServerConfig,
+// NewServer builds new GRPC server
+func NewServer(
+	cfg *config.APIConfig,
 	locator *locator.Locator,
 	errChan chan<- error,
 ) (Service, error) {
-
-	locator.Logger.WithField("endpoint", cfg.ListenEnpdoint).Debug("Starting listening")
 
 	listener, err := net.Listen("tcp", cfg.ListenEnpdoint)
 	if err != nil {

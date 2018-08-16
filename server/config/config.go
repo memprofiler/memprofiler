@@ -8,20 +8,24 @@ import (
 
 // Config is a top-level structure with all server settings
 type Config struct {
-	Server  *ServerConfig  `yaml:"server"`
+	API     *APIConfig     `yaml:"api"`
+	Web     *WebConfig     `yaml:"web"`
 	Storage *StorageConfig `yaml:"storage"`
 	Logging *LoggingConfig `yaml:"logging"`
 }
 
 func (c *Config) Verify() error {
 	// TODO: use reflect to iterate over pointers
-	if err := c.Server.Verify(); err != nil {
+	if err := c.API.Verify(); err != nil {
 		return err
 	}
 	if err := c.Storage.Verify(); err != nil {
 		return err
 	}
 	if err := c.Logging.Verify(); err != nil {
+		return err
+	}
+	if err := c.Web.Verify(); err != nil {
 		return err
 	}
 	return nil

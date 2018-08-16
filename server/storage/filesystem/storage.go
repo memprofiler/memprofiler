@@ -30,7 +30,7 @@ type defaultStorage struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
-	logger *logrus.Logger
+	logger logrus.FieldLogger
 }
 
 const (
@@ -175,7 +175,7 @@ func (s *defaultStorage) populateSessionStorage() error {
 }
 
 // NewStorage builds new storage that keeps measurements in separate files
-func NewStorage(logger *logrus.Logger, cfg *config.FilesystemStorageConfig) (storage.Storage, error) {
+func NewStorage(logger logrus.FieldLogger, cfg *config.FilesystemStorageConfig) (storage.Storage, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &defaultStorage{

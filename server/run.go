@@ -10,11 +10,7 @@ import (
 	"github.com/vitalyisaev2/memprofiler/server/common"
 	"github.com/vitalyisaev2/memprofiler/server/config"
 	"github.com/vitalyisaev2/memprofiler/server/locator"
-)
-
-const (
-	labelAPI = "api"
-	labelWeb = "web"
+	"github.com/vitalyisaev2/memprofiler/server/web"
 )
 
 func run(cfg *config.Config) error {
@@ -60,19 +56,24 @@ func run(cfg *config.Config) error {
 
 type services map[string]common.Service
 
-func (ss services) start(logger *logrus.Logger) {
+func (ss services) start(logger logrus.FieldLogger) {
 	for label, service := range ss {
 		logger.WithField("service", label).Info("Starting service")
-		service.Start()
+		go service.Start()
 	}
 }
 
-func (ss services) stop(logger *logrus.Logger) {
+func (ss services) stop(logger logrus.FieldLogger) {
 	for label, service := range ss {
 		logger.WithField("service", label).Info("Stopping service")
 		service.Stop()
 	}
 }
+
+const (
+	labelAPI = "api"
+	labelWeb = "web"
+)
 
 func runServices(
 	locator *locator.Locator,
@@ -86,7 +87,13 @@ func runServices(
 	)
 
 	// 1. GRPC API
-	ss[labelAPI], err = api.NewAPI(cfg.Server, locator, errChan)
+	ss[labelAPI], err = api.NewServer(cfg.API, locator, errChan)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Web
+	ss[labelWeb], err = web.NewServer(cfg.Web, locator, errChan)
 	if err != nil {
 		return nil, err
 	}

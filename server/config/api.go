@@ -2,13 +2,13 @@ package config
 
 import "fmt"
 
-type ServerConfig struct {
+type APIConfig struct {
 	ListenEnpdoint string `yaml:"listen_endpoint"`
 }
 
-func (c *ServerConfig) Verify() error {
+func (c *APIConfig) Verify() error {
 	if c.ListenEnpdoint == "" {
-		return fmt.Errorf("empty ServerConfig.ListenEnpdoint")
+		return fmt.Errorf("empty APIConfig.ListenEnpdoint")
 	}
 
 	return validateEndpoint(c.ListenEnpdoint)

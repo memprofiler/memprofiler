@@ -1,5 +1,9 @@
-# server
-server:
+# Web REST API
+web:
+  listen_endpoint: "localhost:46218"
+
+# GRPC API
+api:
   listen_endpoint: "localhost:46219"
 
 # storage
@@ -11,5 +15,3 @@ storage:
 # logging
 logging:
   level: "debug"
-
-# metrics

@@ -12,7 +12,7 @@ import (
 type Locator struct {
 	Storage  storage.Storage
 	Computer metrics.Computer
-	Logger   *logrus.Logger
+	Logger   logrus.FieldLogger
 }
 
 func newLogger(cfg *config.LoggingConfig) *logrus.Logger {

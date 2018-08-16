@@ -6,6 +6,8 @@ import (
 	"os"
 	"sync"
 
+	"path/filepath"
+
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
@@ -17,6 +19,10 @@ type defaultDataLoader struct {
 	wg         *sync.WaitGroup
 }
 
+const (
+	maxLoadChanCapacity = 256
+)
+
 func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResult, error) {
 
 	files, err := ioutil.ReadDir(l.subdirPath)
@@ -24,13 +30,22 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 		return nil, err
 	}
 
+	// prepare bufferized channel for results
+	var loadChanCapacity int
+	if len(files) > maxLoadChanCapacity {
+		loadChanCapacity = maxLoadChanCapacity
+	} else {
+		loadChanCapacity = len(files)
+	}
+	results := make(chan *storage.LoadResult, loadChanCapacity)
+
 	// take files from disk, deserialize it and send it to the caller asynchronously
-	results := make(chan *storage.LoadResult)
 	go func() {
 		defer close(results)
 		for _, file := range files {
+			path := filepath.Join(l.subdirPath, file.Name())
 			select {
-			case results <- l.loadSingleMeasurement(file.Name()):
+			case results <- l.loadSingleMeasurement(path):
 			case <-ctx.Done():
 				return
 			}
