@@ -56,7 +56,8 @@ func (ss *defaultSessionStorage) register(
 
 	instances, exists := ss.values[desc.GetType()]
 	if !exists {
-		ss.values[desc.GetType()] = map[string][]storage.SessionID{}
+		instances = map[string][]storage.SessionID{}
+		ss.values[desc.GetType()] = instances
 	}
 
 	sessionIDs, exists := instances[desc.GetInstance()]

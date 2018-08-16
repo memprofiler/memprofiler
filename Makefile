@@ -14,4 +14,7 @@ generate:
 build:
 	go build -o memprofiler github.com/vitalyisaev2/memprofiler/server
 
+run:
+	./memprofiler -c ./server/config/example.yaml
+
 .PHONY: schema

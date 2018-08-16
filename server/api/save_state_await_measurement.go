@@ -10,9 +10,12 @@ var _ saveState = (*saveStateAwaitMeasurement)(nil)
 type saveStateAwaitMeasurement struct {
 	saveStateCommon
 	dataSaver storage.DataSaver
+	counter   int
 }
 
 func (s *saveStateAwaitMeasurement) addMeasurement(mm *schema.Measurement) error {
+	s.counter++
+	s.p.getLogger().WithField("id", s.counter).Debug("Measurement received")
 	return s.dataSaver.Save(mm)
 }
 

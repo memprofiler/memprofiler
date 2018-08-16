@@ -34,7 +34,7 @@ func NewLocator(cfg *config.Config) (*Locator, error) {
 	// 2. run storage
 	l.Logger.Debug("Starting storage")
 	if cfg.Storage.Filesystem != nil {
-		l.Storage, err = filesystem.NewStorage(cfg.Storage.Filesystem)
+		l.Storage, err = filesystem.NewStorage(l.Logger, cfg.Storage.Filesystem)
 	}
 	if err != nil {
 		return nil, err

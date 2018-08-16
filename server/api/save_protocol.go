@@ -25,14 +25,14 @@ type saveProtocol interface {
 	setDescription(*schema.ServiceDescription) error
 	getDescription() *schema.ServiceDescription
 	getStorage() storage.Storage
-	getLogger() *logrus.Logger
-	setLogger(*logrus.Logger)
+	getLogger() logrus.FieldLogger
+	setLogger(logrus.FieldLogger)
 }
 
 type saveStateCode int8
 
 const (
-	awaitHeader saveStateCode = iota + 1
+	awaitDescription saveStateCode = iota + 1
 	awaitMeasurement
 	finished
 )
@@ -42,7 +42,7 @@ type defaultSaveProtocol struct {
 	saveState
 	desc    *schema.ServiceDescription
 	storage storage.Storage
-	logger  *logrus.Logger
+	logger  logrus.FieldLogger
 }
 
 var _ saveProtocol = (*defaultSaveProtocol)(nil)
@@ -67,14 +67,23 @@ func (p *defaultSaveProtocol) getStorage() storage.Storage {
 	return p.storage
 }
 
-func (p *defaultSaveProtocol) getLogger() *logrus.Logger { return p.logger }
+func (p *defaultSaveProtocol) getLogger() logrus.FieldLogger { return p.logger }
 
-func (p *defaultSaveProtocol) setLogger(l *logrus.Logger) { p.logger = l }
+func (p *defaultSaveProtocol) setLogger(l logrus.FieldLogger) { p.logger = l }
 
 func newSaveProtocol(locator *locator.Locator) saveProtocol {
+
 	p := &defaultSaveProtocol{
 		storage: locator.Storage,
 		logger:  locator.Logger,
+	}
+
+	// waiting for header message first
+	p.saveState = &saveStateAwaitDescription{
+		saveStateCommon: saveStateCommon{
+			p:    p,
+			code: awaitDescription,
+		},
 	}
 	return p
 }

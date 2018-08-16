@@ -9,6 +9,7 @@ import (
 	"github.com/vitalyisaev2/memprofiler/server/config"
 	"github.com/vitalyisaev2/memprofiler/server/locator"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 var _ Service = (*server)(nil)
@@ -31,8 +32,9 @@ func (s *server) Stop() {
 }
 
 func (s *server) Save(stream schema.Memprofiler_SaveServer) error {
+	s.logger.Debug("Started request handling")
 
-	// create object that will be responsible for storing measurements
+	// create object that will be responsible for hanlding incoming messages
 	protocol := s.protocolFactory.save()
 	defer func() {
 		if err := protocol.close(); err != nil {
@@ -73,12 +75,16 @@ func NewAPI(
 	}
 
 	s := &server{
-		grpcServer:      grpc.NewServer(),
 		protocolFactory: &defaultProtocolFactory{locator: locator},
 		listener:        listener,
 		cfg:             cfg,
 		errChan:         errChan,
+		logger:          locator.Logger,
 	}
+
+	s.grpcServer = grpc.NewServer()
+	schema.RegisterMemprofilerServer(s.grpcServer, s)
+	reflection.Register(s.grpcServer)
 
 	return s, nil
 }

@@ -37,6 +37,7 @@ func run(cfg *config.Config) error {
 	if err != nil {
 		return err
 	}
+	ss.start(logger)
 	defer ss.stop(logger)
 
 	signalChan := make(chan os.Signal, 1)
@@ -59,6 +60,13 @@ func run(cfg *config.Config) error {
 
 type services map[string]common.Service
 
+func (ss services) start(logger *logrus.Logger) {
+	for label, service := range ss {
+		logger.WithField("service", label).Info("Starting service")
+		service.Start()
+	}
+}
+
 func (ss services) stop(logger *logrus.Logger) {
 	for label, service := range ss {
 		logger.WithField("service", label).Info("Stopping service")
@@ -73,13 +81,11 @@ func runServices(
 ) (services, error) {
 
 	var (
-		err    error
-		ss     = services(map[string]common.Service{})
-		logger = locator.Logger
+		err error
+		ss  = services(map[string]common.Service{})
 	)
 
 	// 1. GRPC API
-	logger.WithField("service", labelAPI).Info("Starting service")
 	ss[labelAPI], err = api.NewAPI(cfg.Server, locator, errChan)
 	if err != nil {
 		return nil, err

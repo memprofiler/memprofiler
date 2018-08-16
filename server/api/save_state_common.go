@@ -37,7 +37,7 @@ func (s *saveStateCommon) makeError() error {
 func (s *saveStateCommon) switchState(code saveStateCode) {
 	var newState saveState
 	switch code {
-	case awaitHeader:
+	case awaitDescription:
 		newState = &saveStateAwaitDescription{saveStateCommon: saveStateCommon{p: s.p, code: code}}
 	case awaitMeasurement:
 		newState = &saveStateAwaitMeasurement{saveStateCommon: saveStateCommon{p: s.p, code: code}}

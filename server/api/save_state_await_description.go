@@ -12,11 +12,12 @@ type saveStateAwaitDescription struct {
 }
 
 func (s *saveStateAwaitDescription) addDescription(desc *schema.ServiceDescription) error {
-	// annotate logger
+	// annotate logger and save it for further usage
 	logger := s.p.getLogger().WithFields(logrus.Fields{
 		"type":     desc.GetType(),
 		"instance": desc.GetInstance(),
 	})
+	s.p.setLogger(logger)
 	logger.Info("Received greeting message from client")
 
 	// try to set description

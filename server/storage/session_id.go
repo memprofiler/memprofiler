@@ -17,7 +17,6 @@ func (id SessionID) String() string {
 // SessionIDFromString ...
 func SessionIDFromString(s string) (SessionID, error) {
 	ix := strings.IndexFunc(s, func(r rune) bool { return r != '0' })
-	fmt.Println("A0", ix)
 	if ix < 0 {
 		return SessionID(0), nil
 	}
@@ -26,7 +25,6 @@ func SessionIDFromString(s string) (SessionID, error) {
 	if err != nil {
 		return SessionID(0), err
 	}
-	fmt.Println("A1", i)
 
 	return SessionID(uint32(i)), nil
 }

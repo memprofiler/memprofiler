@@ -10,6 +10,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/config"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
@@ -18,10 +19,10 @@ import (
 var _ storage.Storage = (*defaultStorage)(nil)
 
 // defaultStorage uses filesystem as a persistent storage;
-// services - first level subdirs;
-// instances - second level subdirs;
-// sessions - third level subdirs;
-// mesaurements - distinct files within sessions sundirs;
+// services - first level subdirectories;
+// instances - second level subdirectories;
+// sessions - third level subdirectories;
+// measurements - distinct files within sessions subdirectories;
 type defaultStorage struct {
 	sessionStorage
 	codec  codec
@@ -29,6 +30,7 @@ type defaultStorage struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
+	logger *logrus.Logger
 }
 
 const (
@@ -143,14 +145,16 @@ func (s *defaultStorage) populateSessionStorage() error {
 
 	for _, s1 := range subdirs1 {
 		if s1.IsDir() {
-			subdirs2, err := ioutil.ReadDir(s1.Name())
+			s1Path := filepath.Join(s.cfg.DataDir, s1.Name())
+			subdirs2, err := ioutil.ReadDir(s1Path)
 			if err != nil {
 				return err
 			}
 			for _, s2 := range subdirs2 {
 				desc := &schema.ServiceDescription{Type: s1.Name(), Instance: s2.Name()}
 
-				subdirs3, err := ioutil.ReadDir(s2.Name())
+				s2Path := filepath.Join(s1Path, s2.Name())
+				subdirs3, err := ioutil.ReadDir(s2Path)
 				if err != nil {
 					return err
 				}
@@ -171,7 +175,7 @@ func (s *defaultStorage) populateSessionStorage() error {
 }
 
 // NewStorage builds new storage that keeps measurements in separate files
-func NewStorage(cfg *config.FilesystemStorageConfig) (storage.Storage, error) {
+func NewStorage(logger *logrus.Logger, cfg *config.FilesystemStorageConfig) (storage.Storage, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &defaultStorage{
@@ -181,6 +185,7 @@ func NewStorage(cfg *config.FilesystemStorageConfig) (storage.Storage, error) {
 		ctx:            ctx,
 		cancel:         cancel,
 		wg:             sync.WaitGroup{},
+		logger:         logger,
 	}
 
 	// traverse dirs and find previously stored data
