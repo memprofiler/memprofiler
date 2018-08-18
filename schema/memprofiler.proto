@@ -24,24 +24,24 @@ message SaveResponse {
 // ServiceDescription describes the service whose memory stats is being tracked
 message ServiceDescription {
     // type - service entity in general
-    string type = 1;
+    string Type = 1;
     // instance - description of a particular service instance
-    string instance = 2;
+    string Instance = 2;
 }
 
 // Measurement contains instantaneous memory usage stats
 message Measurement {
     // observed_at - measurement timestamp
-    google.protobuf.Timestamp observed_at = 1;
+    google.protobuf.Timestamp ObservedAt = 1;
     // locations - list of known memory allocations occured in a process
-    repeated Location locations = 2;
+    repeated Location Locations = 2;
 }
 
 // Location contains memory allocation stats with
 // information about where memory was actually allocated
 message Location {
-    MemoryUsage memory_usage = 1;
-    CallStack call_stack = 2;
+    MemoryUsage MemoryUsage = 1;
+    CallStack CallStack = 2;
 }
 
 // MemoryUsage contains memory usage stats for a particular call stack;
@@ -55,7 +55,10 @@ message MemoryUsage {
 
 // CallStack describes call stack of memory allocation event
 message CallStack {
-    repeated StackFrame frames = 1;
+    // ID represents unique identifier for a particular stack
+    string ID = 1;
+    // Frames describes the code where heap allocation occured
+    repeated StackFrame Frames = 2;
 }
 
 // StackFrame provides information about a single stack frame

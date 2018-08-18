@@ -1,25 +1,24 @@
 package web
 
 import (
-	"encoding/json"
-	"io"
-
 	"math"
 	"reflect"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/vitalyisaev2/memprofiler/schema"
 )
 
 const (
-	prefix = ""
 	indent = "    "
 )
 
-// newJSONEncoder makes new encoder that creates pretty-printed JSON files
-func newJSONEncoder(w io.Writer) *json.Encoder {
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent(prefix, indent)
-	return encoder
+// newJSONMarshaler makes new marshaler that creates pretty-printed JSON files
+func newJSONMarshaler() *jsonpb.Marshaler {
+	marshaler := &jsonpb.Marshaler{
+		Indent:       indent,
+		EmitDefaults: true,
+	}
+	return marshaler
 }
 
 // sanitizeLocationMetricsForJSON drops values that are not available in JSON format

@@ -68,17 +68,18 @@ func TestDefaultComputer_ComputeSessionMetrics_LinearGrowth(t *testing.T) {
 	dl.On("Load", stubCtx).Return(ch, errOK).Once()
 	dl.On("Close").Return(errOK).Once()
 
-	result, err := c.SessionMetrics(stubCtx, dl)
+	sm, err := c.SessionMetrics(stubCtx, dl)
+	locations := sm.Locations
 	assert.NoError(t, err)
-	assert.Len(t, result, 1)
-	assert.Equal(t, cs, result[0].CallStack)
+	assert.Len(t, locations, 1)
+	assert.Equal(t, cs, locations[0].CallStack)
 
 	// for alloc/free rate is 1 unit per second
-	assert.Equal(t, float64(1), result[0].Average.AllocBytesRate)
-	assert.Equal(t, float64(1), result[0].Average.AllocObjectsRate)
-	assert.Equal(t, float64(1), result[0].Average.FreeBytesRate)
-	assert.Equal(t, float64(1), result[0].Average.FreeObjectsRate)
-	// since alloc/free rates are equal, in use rates are zero
-	assert.Equal(t, float64(0), result[0].Average.InUseBytesRate)
-	assert.Equal(t, float64(0), result[0].Average.InUseObjectsRate)
+	assert.Equal(t, float64(1), locations[0].Average.AllocBytesRate)
+	assert.Equal(t, float64(1), locations[0].Average.AllocObjectsRate)
+	assert.Equal(t, float64(1), locations[0].Average.FreeBytesRate)
+	assert.Equal(t, float64(1), locations[0].Average.FreeObjectsRate)
+	// since alloc/free rates are equal, in use rates should be zero
+	assert.Equal(t, float64(0), locations[0].Average.InUseBytesRate)
+	assert.Equal(t, float64(0), locations[0].Average.InUseObjectsRate)
 }

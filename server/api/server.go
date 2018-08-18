@@ -34,7 +34,7 @@ func (s *server) Stop() {
 func (s *server) Save(stream schema.Memprofiler_SaveServer) error {
 	s.logger.Debug("Started request handling")
 
-	// create object that will be responsible for hanlding incoming messages
+	// create object that will be responsible for handling incoming messages
 	protocol := s.protocolFactory.save()
 	defer func() {
 		if err := protocol.close(); err != nil {

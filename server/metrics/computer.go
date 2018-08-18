@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 
+	"sort"
+
 	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
@@ -23,7 +25,7 @@ type defaultComputer struct {
 func (c *defaultComputer) SessionMetrics(
 	ctx context.Context,
 	dataLoader storage.DataLoader,
-) ([]*schema.LocationMetrics, error) {
+) (*schema.SessionMetrics, error) {
 
 	c.wg.Add(1)
 	defer func() {
@@ -59,7 +61,15 @@ LOOP:
 		}
 	}
 
-	return ss.computeStatistics(), nil
+	// by default sort by InUseBytes, because this tends to be the most import indicator
+	locations := ss.computeStatistics()
+	sort.Slice(locations, func(i, j int) bool {
+		// descending order
+		return locations[i].Average.InUseBytesRate > locations[j].Average.InUseBytesRate
+	})
+
+	result := &schema.SessionMetrics{Locations: locations}
+	return result, nil
 }
 
 func (c *defaultComputer) Quit() {

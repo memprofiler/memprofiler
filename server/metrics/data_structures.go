@@ -222,7 +222,7 @@ func (ss *sessionStats) registerMeasurement(mm *schema.Measurement) error {
 	return nil
 }
 
-// FIXME: move to config
+// FIXME: make this setting of web API
 const recent = time.Second
 
 func (ss *sessionStats) computeStatistics() []*schema.LocationMetrics {
