@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package schema;
+
+import "memprofiler.proto";
+
+// HeapConsumptionRates is a collection of rate values for memory consumption indicators.
+// For bytes rate units are bytes per second, for Objects units are units per second
+message HeapConsumptionRates {
+    double AllocObjectsRate = 1;
+    double AllocBytesRate = 2;
+    double FreeObjectsRate = 3;
+    double FreeBytesRate = 4;
+    double InUseObjectsRate = 5;
+    double InUseBytesRate = 6;
+}
+
+// LocationMetrics is a set of metrics computed for a particular location in code
+message LocationMetrics {
+    // Average represents heap consumption rates taken from beginning of the session
+    HeapConsumptionRates average = 1;
+    // Recent represents heap consumption rates taken from several last measurements
+    HeapConsumptionRates recent = 2;
+    // CallStack describes location in code where the allocation occured
+    CallStack call_stack = 3;
+}

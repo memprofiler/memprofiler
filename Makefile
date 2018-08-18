@@ -9,7 +9,7 @@ deps:
 	go get -u -v github.com/stretchr/testify/mock
 
 generate:
-	protoc -I schema schema/memprofiler.proto --go_out=plugins=grpc:schema
+	protoc -I schema schema/*.proto  --go_out=plugins=grpc:schema
 	go generate ./...
 
 build:

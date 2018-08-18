@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
+	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
@@ -22,7 +23,7 @@ type defaultComputer struct {
 func (c *defaultComputer) SessionMetrics(
 	ctx context.Context,
 	dataLoader storage.DataLoader,
-) ([]*LocationMetrics, error) {
+) ([]*schema.LocationMetrics, error) {
 
 	c.wg.Add(1)
 	defer func() {

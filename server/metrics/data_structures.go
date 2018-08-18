@@ -59,7 +59,7 @@ func (ls *locationStats) updateSeries(mu *schema.MemoryUsage, tstamp *time.Time)
 	ls.tstamps = append(ls.tstamps, tstamp)
 }
 
-func (ls *locationStats) toLocationMetrics(recentBorder time.Duration) *LocationMetrics {
+func (ls *locationStats) toLocationMetrics(recentBorder time.Duration) *schema.LocationMetrics {
 
 	// 1. convert *time.Time to floats
 	tstamps, recentIx := ls.makeTstamps(recentBorder)
@@ -72,7 +72,7 @@ func (ls *locationStats) toLocationMetrics(recentBorder time.Duration) *Location
 	wg.Wait()
 
 	// 3. compute trends of memory usage
-	result := &LocationMetrics{CallStack: ls.callStack}
+	result := &schema.LocationMetrics{CallStack: ls.callStack}
 	result.Average = ls.computeHeapConsumptionRate(tstamps, 0)
 	if recentIx != 0 {
 		result.Recent = ls.computeHeapConsumptionRate(tstamps, recentIx)
@@ -131,10 +131,10 @@ func (ls *locationStats) computeInUse(
 }
 
 // computeHeapConsumptionRate estimates rate values for every indicator
-func (ls *locationStats) computeHeapConsumptionRate(tstamps []float64, ix int) *HeapConsumptionRates {
+func (ls *locationStats) computeHeapConsumptionRate(tstamps []float64, ix int) *schema.HeapConsumptionRates {
 
 	var (
-		rates      HeapConsumptionRates
+		rates      schema.HeapConsumptionRates
 		resultChan = make(chan *computationResult, len(indicators))
 	)
 	for _, in := range indicators {
@@ -225,8 +225,8 @@ func (ss *sessionStats) registerMeasurement(mm *schema.Measurement) error {
 // FIXME: move to config
 const recent = time.Second
 
-func (ss *sessionStats) computeStatistics() []*LocationMetrics {
-	results := make([]*LocationMetrics, 0, len(ss.locations))
+func (ss *sessionStats) computeStatistics() []*schema.LocationMetrics {
+	results := make([]*schema.LocationMetrics, 0, len(ss.locations))
 	for _, ls := range ss.locations {
 		lm := ls.toLocationMetrics(recent)
 		results = append(results, lm)

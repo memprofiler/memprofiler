@@ -34,6 +34,7 @@ func (s *server) computeSessionMetrics(w http.ResponseWriter, r *http.Request, p
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	sanitizeLocationMetricsForJSON(result)
 
 	// dump to JSON
 	encoder := newJSONEncoder(w)
