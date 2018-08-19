@@ -7,4 +7,7 @@ schema/*pb.go
 # binary
 memprofiler
 
+# coverage
+coverage.txt
+
 .idea

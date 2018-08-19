@@ -14,6 +14,7 @@ type Config struct {
 	Logging *LoggingConfig `yaml:"logging"`
 }
 
+// Verify checks config
 func (c *Config) Verify() error {
 	// TODO: use reflect to iterate over pointers
 	if err := c.API.Verify(); err != nil {

@@ -8,6 +8,7 @@ type LoggingConfig struct {
 	Level       logrus.Level `yaml:"-"`
 }
 
+// Verify checks config
 func (c *LoggingConfig) Verify() error {
 	var err error
 	c.Level, err = logrus.ParseLevel(c.LevelString)
