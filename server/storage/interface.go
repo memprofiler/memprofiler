@@ -21,7 +21,7 @@ type DataStorage interface {
 	NewDataLoader(*schema.ServiceDescription, SessionID) (DataLoader, error)
 }
 
-// MetadataStorage keeps metainformation about service measurements
+// MetadataStorage stores metadata about service measurements
 type MetadataStorage interface {
 	Services() []string
 	Instances(string) []string
@@ -50,7 +50,7 @@ type LoadResult struct {
 	Err         error
 }
 
-// ServiceMeta provides metainformation about stored service data
+// ServiceMeta provides metadata about stored service data
 type ServiceMeta struct {
 	Description *schema.ServiceDescription
 	Sessions    []SessionID

@@ -8,15 +8,19 @@ import (
 
 	"path/filepath"
 
+	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
 type defaultDataLoader struct {
-	codec      codec
-	subdirPath string
-	sessionID  storage.SessionID
-	wg         *sync.WaitGroup
+	cache              cache
+	codec              codec
+	serviceDescription *schema.ServiceDescription
+	sessionID          storage.SessionID
+	subdirPath         string
+	logger             logrus.FieldLogger
+	wg                 *sync.WaitGroup
 }
 
 const (
@@ -43,9 +47,8 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 	go func() {
 		defer close(results)
 		for _, file := range files {
-			path := filepath.Join(l.subdirPath, file.Name())
 			select {
-			case results <- l.loadSingleMeasurement(path):
+			case results <- l.loadMeasurement(file.Name()):
 			case <-ctx.Done():
 				return
 			}
@@ -55,25 +58,85 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 	return results, nil
 }
 
-// loadSingleMeasurement reads single measurement from file
-func (l *defaultDataLoader) loadSingleMeasurement(filePath string) (result *storage.LoadResult) {
-	result = &storage.LoadResult{}
+// loadMeasurement loads data either from in-memory cache, either from disk
+func (l *defaultDataLoader) loadMeasurement(filename string) *storage.LoadResult {
 
-	fd, err := os.OpenFile(filePath, os.O_RDONLY, filePermissions)
+	contextLogger := l.logger.WithFields(logrus.Fields{
+		"type":        l.serviceDescription.GetType(),
+		"instance":    l.serviceDescription.GetType(),
+		"session":     l.sessionID,
+		"measurement": filename,
+	})
+
+	mmMeta, err := l.makeMeasurementMetadata(filename)
 	if err != nil {
-		result.Err = err
+		return &storage.LoadResult{Err: err}
+	}
+
+	// try to load data from cache of unmarshaled values
+	if cached := l.loadMeasurementFromCache(mmMeta); cached != nil {
+		contextLogger.Debug("Loaded from cache")
+		return &storage.LoadResult{Measurement: cached}
+	}
+
+	// if value is missing in cache, take it directly from disk
+	mm, err := l.loadMeasurementFromFile(filename)
+	if err == nil {
+		contextLogger.Debug("Loaded from disk")
+
+		// put it into cache
+		l.cache.put(mmMeta, mm)
+	}
+	return &storage.LoadResult{Measurement: mm, Err: err}
+}
+
+func (l *defaultDataLoader) makeMeasurementMetadata(filename string) (*measurementMetadata, error) {
+	// convert filename to measurement ID
+	mmID, err := measurementIDFromString(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	// try to load data from cache
+	mmMeta := &measurementMetadata{
+		serviceDescription: l.serviceDescription,
+		sessionID:          l.sessionID,
+		mmID:               mmID,
+	}
+	return mmMeta, nil
+}
+
+func (l *defaultDataLoader) loadMeasurementFromCache(mmMeta *measurementMetadata) *schema.Measurement {
+	if l.cache == nil {
+		return nil
+	}
+	value, _ := l.cache.get(mmMeta)
+	return value
+}
+
+func (l *defaultDataLoader) saveMeasurementToCache(mmMeta *measurementMetadata, mm *schema.Measurement) {
+	if l.cache == nil {
 		return
+	}
+	l.cache.put(mmMeta, mm)
+}
+
+// loadMeasurementFromFile reads single measurement from file
+func (l *defaultDataLoader) loadMeasurementFromFile(filename string) (*schema.Measurement, error) {
+	path := filepath.Join(l.subdirPath, filename)
+
+	fd, err := os.OpenFile(path, os.O_RDONLY, filePermissions)
+	if err != nil {
+		return nil, err
 	}
 	defer fd.Close()
 
 	var measurement schema.Measurement
 	if err := l.codec.decode(fd, &measurement); err != nil {
-		result.Err = err
-		return
+		return nil, err
 	}
 
-	result.Measurement = &measurement
-	return
+	return &measurement, nil
 }
 
 func (l *defaultDataLoader) Close() error {

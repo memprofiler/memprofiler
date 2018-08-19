@@ -1,7 +1,6 @@
 package filesystem
 
 import (
-	"fmt"
 	"os"
 	"sync"
 
@@ -13,20 +12,22 @@ import (
 var _ storage.DataSaver = (*defaultDataSaver)(nil)
 
 type defaultDataSaver struct {
-	subdirPath string
-	codec      codec
-	sessionID  storage.SessionID
-	cfg        *config.FilesystemStorageConfig
-	wg         *sync.WaitGroup
+	codec codec
+	cache cache
+
+	subdirPath         string
+	serviceDescription *schema.ServiceDescription
+	sessionID          storage.SessionID
+	mmID               measurementID
+
+	cfg *config.FilesystemStorageConfig
+	wg  *sync.WaitGroup
 }
 
 func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 
 	// open file for writing
-	filePath, err := makeFilePath(s.subdirPath, mm.GetObservedAt())
-	if err != nil {
-		return fmt.Errorf("failed to make path for file to store measurement: %v", err)
-	}
+	filePath := makeFilename(s.subdirPath, s.mmID)
 	fd, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, filePermissions)
 	if err != nil {
 		return err
@@ -44,6 +45,20 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 			return err
 		}
 	}
+
+	// put record to cache
+	if s.cache != nil {
+		mmMeta := &measurementMetadata{
+			serviceDescription: s.serviceDescription,
+			sessionID:          s.sessionID,
+			mmID:               s.mmID,
+		}
+		s.cache.put(mmMeta, mm)
+	}
+
+	// increment measurement ID
+	s.mmID++
+
 	return nil
 }
 

@@ -11,6 +11,11 @@ storage:
   filesystem:
     data_dir: "/tmp/memprofiler"
     sync_write: false
+    cache:
+      max_total_size: 1073741824  # 1GB
+      ttl: 900                    # 15 minutes
+      gc_frequency: 10            # 10 seconds
+      gc_max_pause: 1             # 1 second
 
 # logging
 logging:

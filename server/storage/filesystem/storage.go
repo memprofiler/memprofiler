@@ -8,8 +8,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/config"
@@ -25,6 +23,7 @@ var _ storage.Storage = (*defaultStorage)(nil)
 // measurements - distinct files within sessions subdirectories;
 type defaultStorage struct {
 	sessionStorage
+	cache  cache
 	codec  codec
 	cfg    *config.FilesystemStorageConfig
 	ctx    context.Context
@@ -65,11 +64,13 @@ func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.
 	}
 
 	saver := &defaultDataSaver{
-		subdirPath: subdirPath,
-		sessionID:  sessionID,
-		codec:      s.codec,
-		cfg:        s.cfg,
-		wg:         &s.wg,
+		subdirPath:         subdirPath,
+		serviceDescription: desc,
+		sessionID:          sessionID,
+		cache:              s.cache,
+		codec:              s.codec,
+		cfg:                s.cfg,
+		wg:                 &s.wg,
 	}
 
 	return saver, nil
@@ -91,10 +92,13 @@ func (s *defaultStorage) NewDataLoader(
 	subdirPath := s.makeSubdirPath(desc, sessionID)
 
 	loader := &defaultDataLoader{
-		subdirPath: subdirPath,
-		codec:      s.codec,
-		sessionID:  sessionID,
-		wg:         &s.wg,
+		subdirPath:         subdirPath,
+		serviceDescription: desc,
+		cache:              s.cache,
+		codec:              s.codec,
+		sessionID:          sessionID,
+		logger:             s.logger,
+		wg:                 &s.wg,
 	}
 	return loader, nil
 }
@@ -112,26 +116,12 @@ func (s *defaultStorage) makeSubdirPath(
 	)
 }
 
-const timeFormat = "%d%02d%02d-%02d%02d%02d"
-
-// makeFilePath creates a path for a file to store a distinct measurement
-func makeFilePath(subdirPath string, tstamp *timestamp.Timestamp) (string, error) {
-
-	t, err := ptypes.Timestamp(tstamp)
-	if err != nil {
-		return "", err
-	}
-
-	dump := fmt.Sprintf(timeFormat,
-		t.Year(), t.Month(), t.Day(),
-		t.Hour(), t.Minute(), t.Second())
-
-	return filepath.Join(subdirPath, dump), nil
-}
-
 func (s *defaultStorage) Quit() {
 	s.cancel()
 	s.wg.Wait()
+	if s.cache != nil {
+		s.cache.quit()
+	}
 }
 
 func (s *defaultStorage) populateSessionStorage() error {
@@ -186,6 +176,10 @@ func NewStorage(logger logrus.FieldLogger, cfg *config.FilesystemStorageConfig) 
 		cancel:         cancel,
 		wg:             sync.WaitGroup{},
 		logger:         logger,
+	}
+
+	if cfg.Cache != nil {
+		s.cache = newCache(*cfg.Cache)
 	}
 
 	// traverse dirs and find previously stored data
