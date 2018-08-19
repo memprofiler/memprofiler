@@ -81,11 +81,12 @@ func TestCache_Expiration(t *testing.T) {
 	assert.Equal(t, stubMM, result)
 
 	// Wait for GC, check that outdated message has been collected
-	time.Sleep(time.Second * time.Duration(cfg.GCFrequency))
+	time.Sleep(time.Second * time.Duration(cfg.GCFrequency) * 2)
 	result, ok = cache.get(stubMMMeta)
 	assert.False(t, ok)
 	assert.Nil(t, result)
 
 	cache.quit()
+
 	assert.Equal(t, 0, cache.(*boundedLRUCache).actualSize)
 }
