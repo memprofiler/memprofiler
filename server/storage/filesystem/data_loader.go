@@ -99,9 +99,11 @@ func (l *defaultDataLoader) makeMeasurementMetadata(filename string) (*measureme
 
 	// try to load data from cache
 	mmMeta := &measurementMetadata{
-		serviceDescription: l.serviceDescription,
-		sessionID:          l.sessionID,
-		mmID:               mmID,
+		SessionDescription: storage.SessionDescription{
+			ServiceDescription: l.serviceDescription,
+			SessionID:          l.sessionID,
+		},
+		mmID: mmID,
 	}
 	return mmMeta, nil
 }

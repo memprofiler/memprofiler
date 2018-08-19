@@ -13,9 +13,8 @@ import (
 )
 
 type measurementMetadata struct {
-	serviceDescription *schema.ServiceDescription
-	sessionID          storage.SessionID
-	mmID               measurementID
+	storage.SessionDescription
+	mmID measurementID
 }
 
 type measurementCached struct {
@@ -24,13 +23,7 @@ type measurementCached struct {
 }
 
 func (meta *measurementMetadata) String() string {
-	return fmt.Sprintf(
-		"%s::%s::%s::%d",
-		meta.serviceDescription.Type,
-		meta.serviceDescription.Instance,
-		meta.sessionID.String(),
-		meta.mmID,
-	)
+	return fmt.Sprintf("%s::%d", meta.SessionDescription.String(), meta.mmID)
 }
 
 type cache interface {
@@ -43,7 +36,7 @@ type cache interface {
 // 1. thread-safety
 // 2. limitation for sum of values sizes;
 // 3. deletion of values with expired TTL;
-// TODO: sharding, learn caching strategies
+// TODO: sharding? + learn caching strategies
 type boundedLRUCache struct {
 	values     map[string]*measurementCached // cached values
 	mutex      sync.RWMutex                  // synchronizes access to cache

@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 
+	"fmt"
+
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/common"
 )
@@ -50,8 +52,17 @@ type LoadResult struct {
 	Err         error
 }
 
-// ServiceMeta provides metadata about stored service data
-type ServiceMeta struct {
-	Description *schema.ServiceDescription
-	Sessions    []SessionID
+// SessionDescription helps to identify streaming session of a particular service instance
+type SessionDescription struct {
+	ServiceDescription *schema.ServiceDescription
+	SessionID          SessionID
+}
+
+func (sd SessionDescription) String() string {
+	return fmt.Sprintf(
+		"%s::%s::%d",
+		sd.ServiceDescription.Type,
+		sd.ServiceDescription.Instance,
+		sd.SessionID,
+	)
 }
