@@ -52,13 +52,15 @@ func TestCache_SimpleOperations(t *testing.T) {
 		GCMaxPause:   1,
 	}
 	cache := newCache(cfg)
-	defer cache.quit()
 
 	ok := cache.put(stubMMMeta, stubMM)
 	assert.True(t, ok)
 	result, ok := cache.get(stubMMMeta)
 	assert.True(t, ok)
 	assert.Equal(t, stubMM, result)
+
+	cache.quit()
+	assert.Equal(t, proto.Size(stubMM), cache.(*boundedLRUCache).actualSize)
 }
 
 func TestCache_Expiration(t *testing.T) {
@@ -69,7 +71,6 @@ func TestCache_Expiration(t *testing.T) {
 		GCMaxPause:   1,
 	}
 	cache := newCache(cfg)
-	defer cache.quit()
 
 	// Read your writes
 	ok := cache.put(stubMMMeta, stubMM)
@@ -78,12 +79,13 @@ func TestCache_Expiration(t *testing.T) {
 	result, ok := cache.get(stubMMMeta)
 	assert.True(t, ok)
 	assert.Equal(t, stubMM, result)
-	assert.Equal(t, proto.Size(stubMM), cache.(*boundedLRUCache).actualSize)
 
 	// Wait for GC, check that outdated message has been collected
 	time.Sleep(time.Second * time.Duration(cfg.GCFrequency))
 	result, ok = cache.get(stubMMMeta)
 	assert.False(t, ok)
 	assert.Nil(t, result)
+
+	cache.quit()
 	assert.Equal(t, 0, cache.(*boundedLRUCache).actualSize)
 }
