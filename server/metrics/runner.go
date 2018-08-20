@@ -4,8 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"sort"
-
 	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
@@ -23,6 +21,7 @@ type defaultRunner struct {
 	cancel   context.CancelFunc
 }
 
+// PutMeasurement stores metrics within internal storage
 func (r *defaultRunner) PutMeasurement(sd *storage.SessionDescription, mm *schema.Measurement) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
@@ -37,6 +36,7 @@ func (r *defaultRunner) PutMeasurement(sd *storage.SessionDescription, mm *schem
 	return nil
 }
 
+// GetSessionMetrics extracts the most recent stats for a particular session
 func (r *defaultRunner) GetSessionMetrics(
 	ctx context.Context,
 	sd *storage.SessionDescription,
@@ -52,6 +52,8 @@ func (r *defaultRunner) GetSessionMetrics(
 		return result, nil
 	}
 
+	// if metrics of outdated session has been requested,
+	// load it from storage and compute metrics from scratch
 	return r.generateSessionMetrics(ctx, sd)
 }
 
@@ -60,7 +62,7 @@ func (r *defaultRunner) generateSessionMetrics(
 	sd *storage.SessionDescription,
 ) (*schema.SessionMetrics, error) {
 
-	// prepare
+	// prepare new loader
 	dataLoader, err := r.storage.NewDataLoader(sd)
 	if err != nil {
 		return nil, err
@@ -68,7 +70,7 @@ func (r *defaultRunner) generateSessionMetrics(
 
 	r.wg.Add(1)
 	defer func() {
-		if err := dataLoader.Close(); err != nil {
+		if err = dataLoader.Close(); err != nil {
 			r.logger.WithError(err).Error("Failed to close data loader")
 		}
 		r.wg.Done()
@@ -80,7 +82,7 @@ func (r *defaultRunner) generateSessionMetrics(
 		return nil, err
 	}
 
-	// populate stats with data coming from loader
+	// populate stats container with measurements coming from loader
 LOOP:
 	for {
 		select {
@@ -102,11 +104,10 @@ LOOP:
 
 	// by default sort by InUseBytes, because this tends to be the most import indicator
 	locations := ss.computeStatistics()
-	sort.Slice(locations, func(i, j int) bool {
-		// descending order
-		return locations[i].Average.InUseBytesRate > locations[j].Average.InUseBytesRate
-	})
-
+	//sort.Slice(locations, func(i, j int) bool {
+	//	// descending order
+	//	return locations[i].Average.InUseBytesRate > locations[j].Average.InUseBytesRate
+	//})
 	result := &schema.SessionMetrics{Locations: locations}
 	return result, nil
 }

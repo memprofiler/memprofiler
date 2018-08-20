@@ -20,7 +20,7 @@ type Storage interface {
 // DataStorage provides interface for storing and loading service measurements
 type DataStorage interface {
 	NewDataSaver(*schema.ServiceDescription) (DataSaver, error)
-	NewDataLoader(*schema.ServiceDescription, SessionID) (DataLoader, error)
+	NewDataLoader(sd *SessionDescription) (DataLoader, error)
 }
 
 // MetadataStorage stores metadata about service measurements
