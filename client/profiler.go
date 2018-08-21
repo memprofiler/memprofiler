@@ -72,21 +72,25 @@ func (p *defaultProfiler) report() error {
 // take memory profiling data from runtime
 func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 
-	stacks := make(map[string]*schema.Location)
-	records := getMemProfileRecords()
+	var (
+		err     error
+		stacks  = make(map[string]*schema.Location)
+		records = getMemProfileRecords()
+	)
 
+	// iterate over profiler records, prepare structures to be sent to the server
 	for _, record := range records {
 		cs := &schema.CallStack{}
 		utils.FillCallStack(cs, record.Stack(), false)
-		id, err := utils.HashCallStack(cs)
+		cs.ID, err = utils.HashCallStack(cs)
 		if err != nil {
 			return nil, err
 		}
 
-		location, exists := stacks[id]
+		location, exists := stacks[cs.ID]
 		if !exists {
 			location = &schema.Location{CallStack: cs, MemoryUsage: &schema.MemoryUsage{}}
-			stacks[id] = location
+			stacks[cs.ID] = location
 		}
 
 		utils.UpdateMemoryUsage(location.MemoryUsage, &record)

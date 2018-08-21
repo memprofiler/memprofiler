@@ -6,6 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/schema"
+	"github.com/vitalyisaev2/memprofiler/server/config"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
@@ -13,9 +14,10 @@ var _ Runner = (*defaultRunner)(nil)
 
 type defaultRunner struct {
 	mutex    sync.RWMutex
-	sessions map[string]*sessionStats
+	sessions map[string]*sessionData
 	logger   logrus.FieldLogger
 	storage  storage.Storage
+	cfg      *config.Config
 	wg       sync.WaitGroup
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -26,13 +28,13 @@ func (r *defaultRunner) PutMeasurement(sd *storage.SessionDescription, mm *schem
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
-	ss, exists := r.sessions[sd.String()]
+	data, exists := r.sessions[sd.String()]
 	if !exists {
-		ss = newSessionStats()
-		r.sessions[sd.String()] = ss
+		data = newSessionData(r.cfg.Metrics)
+		r.sessions[sd.String()] = data
 	}
 
-	ss.registerMeasurement(mm)
+	data.registerMeasurement(mm)
 	return nil
 }
 
@@ -43,11 +45,11 @@ func (r *defaultRunner) GetSessionMetrics(
 ) (*schema.SessionMetrics, error) {
 
 	r.mutex.RLock()
-	ss, exists := r.sessions[sd.String()]
+	data, exists := r.sessions[sd.String()]
 	r.mutex.RUnlock()
 	if exists {
 		result := &schema.SessionMetrics{
-			Locations: ss.computeStatistics(),
+			Locations: data.computeRates(),
 		}
 		return result, nil
 	}

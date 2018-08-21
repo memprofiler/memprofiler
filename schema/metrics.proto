@@ -5,24 +5,25 @@ package schema;
 import "memprofiler.proto";
 
 // HeapConsumptionRates is a collection of rate values for memory consumption indicators.
-// For bytes rate units are bytes per second, for Objects units are units per second
+// Formally, the rate (or velocity) is the first time derivative of any memory consumption indicator.
+// For Bytes rate units are bytes per second, for Objects rate units are units per second
 message HeapConsumptionRates {
-    double AllocObjectsRate = 1;
-    double AllocBytesRate = 2;
-    double FreeObjectsRate = 3;
-    double FreeBytesRate = 4;
-    double InUseObjectsRate = 5;
-    double InUseBytesRate = 6;
+    double AllocObjects = 1;
+    double AllocBytes = 2;
+    double FreeObjects = 3;
+    double FreeBytes = 4;
+    double InUseObjects = 5;
+    double InUseBytes = 6;
 }
 
-// LocationMetrics is a set of metrics computed for a particular location in code
+// LocationMetrics is a set of heap allocation statistics
+// that happened in a particular place in code
 message LocationMetrics {
-    // Average represents heap consumption rates taken from beginning of the session
-    HeapConsumptionRates Average = 1;
-    // Recent represents heap consumption rates taken from several last measurements
-    HeapConsumptionRates Recent = 2;
+    // Rates represents heap consumption rates estimated
+    // for some averaging window defined by server
+    HeapConsumptionRates Rates = 1;
     // CallStack describes location in code where the allocation occured
-    CallStack CallStack = 3;
+    CallStack CallStack = 2;
 }
 
 // SessionMetrics contains list of heap allocation metrics per every location
