@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/locator"
+	"github.com/vitalyisaev2/memprofiler/server/metrics"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
@@ -22,11 +23,14 @@ type saveState interface {
 type saveProtocol interface {
 	saveState
 	setState(saveState)
-	setDescription(*schema.ServiceDescription) error
-	getDescription() *schema.ServiceDescription
+	setSessionDescription(*storage.SessionDescription) error
+	getSessionDescription() *storage.SessionDescription
 	getStorage() storage.Storage
-	getLogger() logrus.FieldLogger
+	getComputer() metrics.Computer
 	setLogger(logrus.FieldLogger)
+	getLogger() logrus.FieldLogger
+	setDataSaver(storage.DataSaver) error
+	getDataSaver() storage.DataSaver
 }
 
 type saveStateCode int8
@@ -40,9 +44,11 @@ const (
 // defaultSaveProtocol is a default implementation of saveProtocol
 type defaultSaveProtocol struct {
 	saveState
-	desc    *schema.ServiceDescription
-	storage storage.Storage
-	logger  logrus.FieldLogger
+	sessionDescription *storage.SessionDescription
+	dataSaver          storage.DataSaver
+	storage            storage.Storage
+	computer           metrics.Computer
+	logger             logrus.FieldLogger
 }
 
 var _ saveProtocol = (*defaultSaveProtocol)(nil)
@@ -51,31 +57,42 @@ func (p *defaultSaveProtocol) setState(instance saveState) {
 	p.saveState = instance
 }
 
-func (p *defaultSaveProtocol) setDescription(desc *schema.ServiceDescription) error {
-	if p.desc != nil {
-		return fmt.Errorf("description is already set")
+func (p *defaultSaveProtocol) setSessionDescription(desc *storage.SessionDescription) error {
+	if p.sessionDescription != nil {
+		return fmt.Errorf("session description is already set")
 	}
-	p.desc = desc
+	p.sessionDescription = desc
 	return nil
 }
 
-func (p *defaultSaveProtocol) getDescription() *schema.ServiceDescription {
-	return p.desc
+func (p *defaultSaveProtocol) getSessionDescription() *storage.SessionDescription {
+	return p.sessionDescription
 }
 
-func (p *defaultSaveProtocol) getStorage() storage.Storage {
-	return p.storage
-}
+func (p *defaultSaveProtocol) getComputer() metrics.Computer { return p.computer }
+
+func (p *defaultSaveProtocol) getStorage() storage.Storage { return p.storage }
 
 func (p *defaultSaveProtocol) getLogger() logrus.FieldLogger { return p.logger }
 
 func (p *defaultSaveProtocol) setLogger(l logrus.FieldLogger) { p.logger = l }
 
+func (p *defaultSaveProtocol) setDataSaver(dataSaver storage.DataSaver) error {
+	if p.dataSaver != nil {
+		return fmt.Errorf("data saver is already set")
+	}
+	p.dataSaver = dataSaver
+	return nil
+}
+
+func (p *defaultSaveProtocol) getDataSaver() storage.DataSaver { return p.dataSaver }
+
 func newSaveProtocol(locator *locator.Locator) saveProtocol {
 
 	p := &defaultSaveProtocol{
-		storage: locator.Storage,
-		logger:  locator.Logger,
+		storage:  locator.Storage,
+		computer: locator.Computer,
+		logger:   locator.Logger,
 	}
 
 	// waiting for header message first

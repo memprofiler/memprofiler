@@ -5,6 +5,8 @@ import (
 
 	"gonum.org/v1/gonum/stat"
 
+	"fmt"
+
 	"github.com/vitalyisaev2/memprofiler/schema"
 )
 
@@ -28,9 +30,9 @@ func (ld *locationData) registerMeasurement(mu *schema.MemoryUsage) {
 	if len(ld.AllocBytes) == ld.window {
 		ld.AllocObjects = ld.AllocObjects[:ld.window-1]
 		ld.AllocBytes = ld.AllocBytes[:ld.window-1]
-		ld.FreeObjects = ld.FreeBytes[:ld.window-1]
+		ld.FreeObjects = ld.FreeObjects[:ld.window-1]
 		ld.FreeBytes = ld.FreeBytes[:ld.window-1]
-		ld.InUseObjects = ld.InUseBytes[:ld.window-1]
+		ld.InUseObjects = ld.InUseObjects[:ld.window-1]
 		ld.InUseBytes = ld.InUseBytes[:ld.window-1]
 	}
 
@@ -72,7 +74,12 @@ func (ld *locationData) computeMetrics(tstamps []float64) *schema.LocationMetric
 // computeSlope computes the slope of linear regression equation,
 // which is equal to rate [units per second] or the first time derivative
 func computeSlope(tstamps, values []float64) float64 {
-	_, slope := stat.LinearRegression(tstamps, values, nil, false)
+	var x []float64
+	if len(tstamps) != len(values) {
+		x = tstamps[len(values):]
+	}
+	fmt.Println(x, values)
+	_, slope := stat.LinearRegression(x, values, nil, false)
 	return slope
 }
 

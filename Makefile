@@ -1,6 +1,7 @@
 deps:
+	go get -u -v github.com/deckarep/golang-set
 	go get -u -v github.com/julienschmidt/httprouter
-	go get -u -v github.com/sirupsen/logrus 
+	go get -u -v github.com/sirupsen/logrus
 	go get -u -v google.golang.org/grpc
 	go get -u -v github.com/golang/protobuf/...
 	go get -u -v golang.org/x/tools/cmd/stringer

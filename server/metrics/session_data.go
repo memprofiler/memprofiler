@@ -7,6 +7,8 @@ import (
 
 	"context"
 
+	"fmt"
+
 	"github.com/deckarep/golang-set"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
@@ -107,6 +109,7 @@ func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 	// so it's necessary to put zeroes for this location at the current timestamp
 	for _, stackID := range sessionLocations.Difference(mmLocations).ToSlice() {
 		sdl := sd.locations[stackID.(string)]
+		fmt.Println("I'm here")
 		sdl.registerMeasurement(emptyMemoryUsage)
 	}
 

@@ -23,7 +23,10 @@ func (s *saveStateCommon) addMeasurement(*schema.Measurement) error {
 }
 
 func (s *saveStateCommon) close() error {
-	return s.makeError()
+	if dataSaver := s.p.getDataSaver(); dataSaver != nil {
+		return dataSaver.Close()
+	}
+	return nil
 }
 
 func (s *saveStateCommon) makeError() error {
