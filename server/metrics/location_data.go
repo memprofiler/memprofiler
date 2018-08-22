@@ -40,17 +40,17 @@ func (ld *locationData) registerMeasurement(mu *schema.MemoryUsage) {
 	ld.FreeObjects = append(ld.FreeObjects, float64(mu.FreeObjects))
 	ld.FreeBytes = append(ld.FreeBytes, float64(mu.FreeBytes))
 	ld.InUseObjects = append(ld.InUseObjects, float64(mu.AllocObjects)-float64(mu.FreeObjects))
-	ld.InUseBytes = append(ld.InUseObjects, float64(mu.AllocBytes)-float64(mu.FreeBytes))
+	ld.InUseBytes = append(ld.InUseBytes, float64(mu.AllocBytes)-float64(mu.FreeBytes))
 }
 
 // computeMetrics performs stats computations for every stored time series;
 // the timestamps are shared between all session members and stored out there
 func (ld *locationData) computeMetrics(tstamps []float64) *schema.LocationMetrics {
 
-	var rates schema.HeapConsumptionRates
+	rates := &schema.HeapConsumptionRates{}
 
 	ldValue := reflect.Indirect(reflect.ValueOf(ld))
-	ratesValue := reflect.ValueOf(rates)
+	ratesValue := reflect.Indirect(reflect.ValueOf(rates))
 
 	for i := 0; i < ldValue.NumField(); i++ {
 		ldField := ldValue.Field(i)
@@ -64,7 +64,7 @@ func (ld *locationData) computeMetrics(tstamps []float64) *schema.LocationMetric
 	}
 
 	return &schema.LocationMetrics{
-		Rates:     &rates,
+		Rates:     rates,
 		CallStack: ld.callStack,
 	}
 }

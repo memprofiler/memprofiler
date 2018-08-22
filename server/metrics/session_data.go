@@ -23,7 +23,7 @@ type sessionData struct {
 	locations      map[string]*locationData // per-location stats (stackID <-> locationData)
 	window         int                      // length of time series tail kept in-memory
 	sessionMetrics *schema.SessionMetrics   // latest available session metrics (potentially outdated)
-	needsRefresh   bool                     // if metrics should be recomputed by demand
+	outdated       bool                     // if metrics should be recomputed by demand
 	logger         logrus.FieldLogger
 }
 
@@ -111,8 +111,7 @@ func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 	}
 
 	// mark existing sessionMetrics as outdated
-	sd.needsRefresh = true
-
+	sd.outdated = true
 	return nil
 }
 
@@ -124,13 +123,13 @@ func (sd *sessionData) getSessionMetrics() *schema.SessionMetrics {
 	defer sd.mutex.Unlock()
 
 	// return existing sessionMetrics if it's not outdated
-	if !sd.needsRefresh && sd.sessionMetrics != nil {
+	if !sd.outdated && sd.sessionMetrics != nil {
 		return sd.sessionMetrics
 	}
 
 	// otherwise perform computation from scratch
 	sd.sessionMetrics = sd.computeSessionMetrics()
-	sd.needsRefresh = false
+	sd.outdated = false
 	return sd.sessionMetrics
 }
 
