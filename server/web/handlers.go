@@ -9,10 +9,6 @@ import (
 )
 
 func (s *server) computeSessionMetrics(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	description := &schema.ServiceDescription{
-		Type:     params.ByName("type"),
-		Instance: params.ByName("instance"),
-	}
 
 	// parse session id
 	sessionID, err := storage.SessionIDFromString(params.ByName("session"))
@@ -22,14 +18,16 @@ func (s *server) computeSessionMetrics(w http.ResponseWriter, r *http.Request, p
 	}
 
 	// ask storage for session data
-	loader, err := s.storage.NewDataLoader(description, sessionID)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	sessionDescription := &storage.SessionDescription{
+		ServiceDescription: &schema.ServiceDescription{
+			Type:     params.ByName("type"),
+			Instance: params.ByName("instance"),
+		},
+		SessionID: sessionID,
 	}
 
-	// compute metrics for a session
-	result, err := s.computer.SessionMetrics(r.Context(), loader)
+	// get session metrics
+	result, err := s.computer.GetSessionMetrics(r.Context(), sessionDescription)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

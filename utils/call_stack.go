@@ -57,6 +57,7 @@ func HashCallStack(cs *schema.CallStack) (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
+// DumpStackFrame makes some string representation of a stack frame
 func DumpStackFrame(sf *schema.StackFrame) string {
 	return fmt.Sprintf("%s:%s:%d", sf.GetName(), sf.GetFile(), sf.GetLine())
 }

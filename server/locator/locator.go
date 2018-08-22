@@ -42,7 +42,7 @@ func NewLocator(cfg *config.Config) (*Locator, error) {
 
 	// 3. run measurement collector
 	l.Logger.Debug("Starting metrics computer")
-	l.Computer = metrics.New(l.Logger)
+	l.Computer = metrics.NewComputer(l.Logger, l.Storage, cfg.Metrics)
 
 	return &l, err
 }

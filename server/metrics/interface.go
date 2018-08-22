@@ -8,8 +8,8 @@ import (
 	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
-// Runner executes statistical analysis of the incoming data stream
-type Runner interface {
+// Computer performs statistical analysis for the incoming and archived data streams
+type Computer interface {
 	PutMeasurement(sd *storage.SessionDescription, mm *schema.Measurement) error
 	GetSessionMetrics(ctx context.Context, sd *storage.SessionDescription) (*schema.SessionMetrics, error)
 	common.Subsystem

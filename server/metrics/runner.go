@@ -10,122 +10,114 @@ import (
 	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
-var _ Runner = (*defaultRunner)(nil)
+var _ Computer = (*defaultComputer)(nil)
 
-type defaultRunner struct {
+type defaultComputer struct {
 	mutex    sync.RWMutex
 	sessions map[string]*sessionData
 	logger   logrus.FieldLogger
 	storage  storage.Storage
-	cfg      *config.Config
+	cfg      *config.MetricsConfig
 	wg       sync.WaitGroup
 	ctx      context.Context
 	cancel   context.CancelFunc
 }
 
-// PutMeasurement stores metrics within internal storage
-func (r *defaultRunner) PutMeasurement(sd *storage.SessionDescription, mm *schema.Measurement) error {
+// PutMeasurement stores measurement within internal storage
+func (r *defaultComputer) PutMeasurement(sd *storage.SessionDescription, mm *schema.Measurement) error {
 	r.mutex.Lock()
-	defer r.mutex.Unlock()
-
 	data, exists := r.sessions[sd.String()]
 	if !exists {
-		data = newSessionData(r.cfg.Metrics)
+		data = newSessionData(r.logger, r.cfg.Window)
 		r.sessions[sd.String()] = data
 	}
+	r.mutex.Unlock()
 
 	data.registerMeasurement(mm)
 	return nil
 }
 
-// GetSessionMetrics extracts the most recent stats for a particular session
-func (r *defaultRunner) GetSessionMetrics(
+// GetSessionMetrics extracts the most recent metrics of a particular session
+func (r *defaultComputer) GetSessionMetrics(
 	ctx context.Context,
 	sd *storage.SessionDescription,
 ) (*schema.SessionMetrics, error) {
 
-	r.mutex.RLock()
+	// get or create session data
+	r.mutex.Lock()
 	data, exists := r.sessions[sd.String()]
-	r.mutex.RUnlock()
-	if exists {
-		result := &schema.SessionMetrics{
-			Locations: data.computeRates(),
-		}
-		return result, nil
+	if !exists {
+		data = newSessionData(r.logger, r.cfg.Window)
+		r.sessions[sd.String()] = data
 	}
+	r.mutex.Unlock()
 
 	// if metrics of outdated session has been requested,
-	// load it from storage and compute metrics from scratch
-	return r.generateSessionMetrics(ctx, sd)
+	// load data from storage and compute metrics from scratch
+	if !exists {
+		dataLoader, err := r.storage.NewDataLoader(sd)
+		if err != nil {
+			return nil, err
+		}
+
+		r.wg.Add(1)
+		defer func() {
+			if err = dataLoader.Close(); err != nil {
+				r.logger.WithError(err).Error("Failed to close data loader")
+			}
+			r.wg.Done()
+		}()
+
+		loadChan, err := dataLoader.Load(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := data.populate(ctx, loadChan); err != nil {
+			return nil, err
+		}
+	}
+
+	return data.getSessionMetrics(), nil
 }
 
-func (r *defaultRunner) generateSessionMetrics(
+func (r *defaultComputer) populateSessionData(
 	ctx context.Context,
 	sd *storage.SessionDescription,
 ) (*schema.SessionMetrics, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
-	// prepare new loader
-	dataLoader, err := r.storage.NewDataLoader(sd)
-	if err != nil {
-		return nil, err
-	}
+	// prepare new session data storage
+	r.mutex.Lock()
+	data := newSessionData(r.logger, r.cfg.Window)
+	r.sessions[sd.String()] = data
+	r.mutex.Unlock()
 
-	r.wg.Add(1)
-	defer func() {
-		if err = dataLoader.Close(); err != nil {
-			r.logger.WithError(err).Error("Failed to close data loader")
-		}
-		r.wg.Done()
-	}()
-
-	ss := newSessionStats()
-	loadChan, err := dataLoader.Load(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	// populate stats container with measurements coming from loader
-LOOP:
-	for {
-		select {
-		case data, ok := <-loadChan:
-			if !ok {
-				break LOOP
-			}
-			if data.Err != nil {
-				r.logger.WithError(data.Err).Error("failed to get data from loader")
-			} else {
-				ss.registerMeasurement(data.Measurement)
-			}
-		case <-r.ctx.Done():
-			return nil, r.ctx.Err()
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
-	}
-
-	// by default sort by InUseBytes, because this tends to be the most import indicator
-	locations := ss.computeStatistics()
-	//sort.Slice(locations, func(i, j int) bool {
-	//	// descending order
-	//	return locations[i].Average.InUseBytesRate > locations[j].Average.InUseBytesRate
-	//})
-	result := &schema.SessionMetrics{Locations: locations}
-	return result, nil
+	return data.getSessionMetrics(), nil
 }
 
-func (r *defaultRunner) Quit() {
+//sort.Slice(locations, func(i, j int) bool {
+//	// descending order
+//	return locations[i].Average.InUseBytesRate > locations[j].Average.InUseBytesRate
+//})
+
+func (r *defaultComputer) Quit() {
 	r.cancel()
 	r.wg.Wait()
 }
 
-// NewRunner instantiates new runner
-func NewRunner(logger logrus.FieldLogger) Runner {
+// NewComputer instantiates new runner
+func NewComputer(logger logrus.FieldLogger, storage storage.Storage, cfg *config.MetricsConfig) Computer {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &defaultRunner{
-		logger: logger,
-		wg:     sync.WaitGroup{},
-		ctx:    ctx,
-		cancel: cancel,
+	return &defaultComputer{
+		logger:   logger,
+		sessions: make(map[string]*sessionData),
+		mutex:    sync.RWMutex{},
+		wg:       sync.WaitGroup{},
+		storage:  storage,
+		cfg:      cfg,
+		ctx:      ctx,
+		cancel:   cancel,
 	}
 }

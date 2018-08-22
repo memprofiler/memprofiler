@@ -3,8 +3,9 @@ package metrics
 import (
 	"reflect"
 
-	"github.com/vitalyisaev2/memprofiler/schema"
 	"gonum.org/v1/gonum/stat"
+
+	"github.com/vitalyisaev2/memprofiler/schema"
 )
 
 // locationData contains collection of time series with different heap metrics;
@@ -54,7 +55,7 @@ func (ld *locationData) computeMetrics(tstamps []float64) *schema.LocationMetric
 	for i := 0; i < ldValue.NumField(); i++ {
 		ldField := ldValue.Field(i)
 
-		// if field type is []float64, compute the metrics
+		// if field type is []float64, perform computation
 		if ldField.Kind() == reflect.Slice && ldField.Type().Elem().Kind() == reflect.Float64 {
 			slope := computeSlope(tstamps, ldField.Interface().([]float64))
 			ratesField := ratesValue.FieldByName(ldValue.Type().Field(i).Name)
@@ -77,7 +78,13 @@ func computeSlope(tstamps, values []float64) float64 {
 
 func newLocationData(callStack *schema.CallStack, window int) *locationData {
 	return &locationData{
-		window:    window,
-		callStack: callStack,
+		callStack:    callStack,
+		window:       window,
+		AllocBytes:   make([]float64, 0, window),
+		AllocObjects: make([]float64, 0, window),
+		FreeBytes:    make([]float64, 0, window),
+		FreeObjects:  make([]float64, 0, window),
+		InUseBytes:   make([]float64, 0, window),
+		InUseObjects: make([]float64, 0, window),
 	}
 }
