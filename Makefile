@@ -19,4 +19,7 @@ build:
 run:
 	./memprofiler -c ./server/config/example.yaml
 
+test:
+	go test -v ./...
+
 .PHONY: schema

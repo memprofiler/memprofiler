@@ -50,7 +50,6 @@ func (ld *locationData) registerMeasurement(mu *schema.MemoryUsage) {
 func (ld *locationData) computeMetrics(tstamps []float64) *schema.LocationMetrics {
 
 	rates := &schema.HeapConsumptionRates{}
-
 	ldValue := reflect.Indirect(reflect.ValueOf(ld))
 	ratesValue := reflect.Indirect(reflect.ValueOf(rates))
 
@@ -74,11 +73,11 @@ func (ld *locationData) computeMetrics(tstamps []float64) *schema.LocationMetric
 // computeSlope computes the slope of linear regression equation,
 // which is equal to rate [units per second] or the first time derivative
 func computeSlope(tstamps, values []float64) float64 {
-	var x []float64
+	x := tstamps
 	if len(tstamps) != len(values) {
 		x = tstamps[len(values):]
 	}
-	fmt.Println(x, values)
+	fmt.Println(x, tstamps, values)
 	_, slope := stat.LinearRegression(x, values, nil, false)
 	return slope
 }

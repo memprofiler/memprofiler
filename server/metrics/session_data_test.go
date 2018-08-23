@@ -64,9 +64,12 @@ func TestSessionData_LinearGrowth(t *testing.T) {
 	}
 
 	data := newSessionData(stubLogger, 10)
-	data.registerMeasurement(mm0)
-	data.registerMeasurement(mm1)
-	data.registerMeasurement(mm2)
+	err := data.registerMeasurement(mm0)
+	assert.NoError(t, err)
+	err = data.registerMeasurement(mm1)
+	assert.NoError(t, err)
+	err = data.registerMeasurement(mm2)
+	assert.NoError(t, err)
 
 	sm := data.getSessionMetrics()
 	assert.Len(t, sm.Locations, 1)
