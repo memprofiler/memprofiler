@@ -14,13 +14,12 @@ import (
 )
 
 type defaultDataLoader struct {
-	cache              cache
-	codec              codec
-	serviceDescription *schema.ServiceDescription
-	sessionID          storage.SessionID
-	subdirPath         string
-	logger             logrus.FieldLogger
-	wg                 *sync.WaitGroup
+	cache      cache
+	codec      codec
+	sd         *storage.SessionDescription
+	subdirPath string
+	logger     logrus.FieldLogger
+	wg         *sync.WaitGroup
 }
 
 const (
@@ -62,9 +61,9 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 func (l *defaultDataLoader) loadMeasurement(filename string) *storage.LoadResult {
 
 	contextLogger := l.logger.WithFields(logrus.Fields{
-		"type":        l.serviceDescription.GetType(),
-		"instance":    l.serviceDescription.GetType(),
-		"session":     l.sessionID,
+		"type":        l.sd.ServiceDescription.GetType(),
+		"instance":    l.sd.ServiceDescription.GetInstance(),
+		"session":     l.sd.SessionID,
 		"measurement": filename,
 	})
 
@@ -99,8 +98,7 @@ func (l *defaultDataLoader) makeMeasurementMetadata(filename string) (*measureme
 
 	// try to load data from cache
 	mmMeta := &measurementMetadata{
-		serviceDescription: l.serviceDescription,
-		sessionID:          l.sessionID,
+		SessionDescription: *l.sd,
 		mmID:               mmID,
 	}
 	return mmMeta, nil

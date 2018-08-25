@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/config"
+	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
 var (
@@ -18,9 +19,11 @@ var (
 		Instance: "local",
 	}
 	stubMMMeta = &measurementMetadata{
-		serviceDescription: stubServiceDescription,
-		sessionID:          1,
-		mmID:               1,
+		SessionDescription: storage.SessionDescription{
+			ServiceDescription: stubServiceDescription,
+			SessionID:          1,
+		},
+		mmID: 1,
 	}
 	stubMM = &schema.Measurement{
 		ObservedAt: &timestamp.Timestamp{
@@ -87,6 +90,5 @@ func TestCache_Expiration(t *testing.T) {
 	assert.Nil(t, result)
 
 	cache.quit()
-
 	assert.Equal(t, 0, cache.(*boundedLRUCache).actualSize)
 }

@@ -49,9 +49,11 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 	// put record to cache
 	if s.cache != nil {
 		mmMeta := &measurementMetadata{
-			serviceDescription: s.serviceDescription,
-			sessionID:          s.sessionID,
-			mmID:               s.mmID,
+			SessionDescription: storage.SessionDescription{
+				ServiceDescription: s.serviceDescription,
+				SessionID:          s.sessionID,
+			},
+			mmID: s.mmID,
 		}
 		s.cache.put(mmMeta, mm)
 	}

@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/vitalyisaev2/memprofiler/schema"
@@ -9,10 +10,6 @@ import (
 )
 
 func (s *server) computeSessionMetrics(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	description := &schema.ServiceDescription{
-		Type:     params.ByName("type"),
-		Instance: params.ByName("instance"),
-	}
 
 	// parse session id
 	sessionID, err := storage.SessionIDFromString(params.ByName("session"))
@@ -22,18 +19,27 @@ func (s *server) computeSessionMetrics(w http.ResponseWriter, r *http.Request, p
 	}
 
 	// ask storage for session data
-	loader, err := s.storage.NewDataLoader(description, sessionID)
+	sessionDescription := &storage.SessionDescription{
+		ServiceDescription: &schema.ServiceDescription{
+			Type:     params.ByName("type"),
+			Instance: params.ByName("instance"),
+		},
+		SessionID: sessionID,
+	}
+
+	// get session metrics
+	result, err := s.computer.GetSessionMetrics(r.Context(), sessionDescription)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// compute metrics for a session
-	result, err := s.computer.SessionMetrics(r.Context(), loader)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// sort results by InUseBytes rate, since it the most relevant indicator for memory leak
+	s.logger.Debug("sorting slice")
+	sort.Slice(result.Locations, func(i, j int) bool {
+		// descending order
+		return result.Locations[i].Rates.InUseBytes > result.Locations[j].Rates.InUseBytes
+	})
 
 	// dump to JSON
 	m := newJSONMarshaler()

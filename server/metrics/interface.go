@@ -8,8 +8,9 @@ import (
 	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
-// Computer is responsible for counting memory usage metrics from data
+// Computer performs statistical analysis for the incoming and archived data streams
 type Computer interface {
-	SessionMetrics(context.Context, storage.DataLoader) (*schema.SessionMetrics, error)
+	PutMeasurement(sd *storage.SessionDescription, mm *schema.Measurement) error
+	GetSessionMetrics(ctx context.Context, sd *storage.SessionDescription) (*schema.SessionMetrics, error)
 	common.Subsystem
 }

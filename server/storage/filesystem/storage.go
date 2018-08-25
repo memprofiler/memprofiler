@@ -50,7 +50,11 @@ func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.
 	sessionID := s.sessionStorage.inc(desc)
 
 	// obtain directory to store data coming from a particular service instance
-	subdirPath := s.makeSubdirPath(desc, sessionID)
+	sd := &storage.SessionDescription{
+		ServiceDescription: desc,
+		SessionID:          sessionID,
+	}
+	subdirPath := s.makeSubdirPath(sd)
 	if _, err := os.Stat(subdirPath); err != nil {
 
 		if !os.IsNotExist(err) {
@@ -76,10 +80,7 @@ func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.
 	return saver, nil
 }
 
-func (s *defaultStorage) NewDataLoader(
-	desc *schema.ServiceDescription,
-	sessionID storage.SessionID,
-) (storage.DataLoader, error) {
+func (s *defaultStorage) NewDataLoader(sd *storage.SessionDescription) (storage.DataLoader, error) {
 
 	select {
 	case <-s.ctx.Done():
@@ -89,30 +90,26 @@ func (s *defaultStorage) NewDataLoader(
 	}
 
 	// prepare list of files with measurement dumps
-	subdirPath := s.makeSubdirPath(desc, sessionID)
+	subdirPath := s.makeSubdirPath(sd)
 
 	loader := &defaultDataLoader{
-		subdirPath:         subdirPath,
-		serviceDescription: desc,
-		cache:              s.cache,
-		codec:              s.codec,
-		sessionID:          sessionID,
-		logger:             s.logger,
-		wg:                 &s.wg,
+		subdirPath: subdirPath,
+		sd:         sd,
+		cache:      s.cache,
+		codec:      s.codec,
+		logger:     s.logger,
+		wg:         &s.wg,
 	}
 	return loader, nil
 }
 
 // makeSubdirPath builds a path for a filesystem direcory with instance data
-func (s *defaultStorage) makeSubdirPath(
-	desc *schema.ServiceDescription,
-	sessionID storage.SessionID,
-) string {
+func (s *defaultStorage) makeSubdirPath(sd *storage.SessionDescription) string {
 	return filepath.Join(
 		s.cfg.DataDir,
-		desc.GetType(),
-		desc.GetInstance(),
-		sessionID.String(),
+		sd.ServiceDescription.GetType(),
+		sd.ServiceDescription.GetInstance(),
+		sd.SessionID.String(),
 	)
 }
 

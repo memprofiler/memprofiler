@@ -11,6 +11,7 @@ type Config struct {
 	API     *APIConfig     `yaml:"api"`
 	Web     *WebConfig     `yaml:"web"`
 	Storage *StorageConfig `yaml:"storage"`
+	Metrics *MetricsConfig `yaml:"metrics"`
 	Logging *LoggingConfig `yaml:"logging"`
 }
 
@@ -20,13 +21,16 @@ func (c *Config) Verify() error {
 	if err := c.API.Verify(); err != nil {
 		return err
 	}
+	if err := c.Web.Verify(); err != nil {
+		return err
+	}
 	if err := c.Storage.Verify(); err != nil {
 		return err
 	}
-	if err := c.Logging.Verify(); err != nil {
+	if err := c.Metrics.Verify(); err != nil {
 		return err
 	}
-	if err := c.Web.Verify(); err != nil {
+	if err := c.Logging.Verify(); err != nil {
 		return err
 	}
 	return nil

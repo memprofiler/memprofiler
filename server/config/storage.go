@@ -28,7 +28,7 @@ type FilesystemStorageConfig struct {
 // Verify verifies config
 func (c *FilesystemStorageConfig) Verify() error {
 	if c.DataDir == "" {
-		return fmt.Errorf("empty FilesystemStorageConfig.DataDir")
+		return fmt.Errorf("invalid FilesystemStorageConfig.DataDir")
 	}
 	if c.Cache != nil {
 		if err := c.Cache.Verify(); err != nil {

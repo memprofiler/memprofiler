@@ -2,23 +2,28 @@ package api
 
 import (
 	"github.com/vitalyisaev2/memprofiler/schema"
-	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
 var _ saveState = (*saveStateAwaitMeasurement)(nil)
 
 type saveStateAwaitMeasurement struct {
 	saveStateCommon
-	dataSaver storage.DataSaver
-	counter   int
+	counter int
 }
 
 func (s *saveStateAwaitMeasurement) addMeasurement(mm *schema.Measurement) error {
 	s.counter++
 	s.p.getLogger().WithField("id", s.counter).Debug("Measurement received")
-	return s.dataSaver.Save(mm)
+
+	// 1. Save data to persistant storage
+	if err := s.p.getDataSaver().Save(mm); err != nil {
+		return err
+	}
+
+	// 2. Save measurement to metrics computer
+	return s.p.getComputer().PutMeasurement(s.p.getSessionDescription(), mm)
 }
 
 func (s *saveStateAwaitMeasurement) close() error {
-	return s.dataSaver.Close()
+	return s.p.getDataSaver().Close()
 }

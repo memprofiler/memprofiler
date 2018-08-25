@@ -17,6 +17,10 @@ storage:
       gc_frequency: 10            # 10 seconds
       gc_max_pause: 1             # 1 second
 
+# metrics
+metrics:
+  window: 50
+
 # logging
 logging:
   level: "debug"

@@ -4,86 +4,120 @@ import (
 	"context"
 	"sync"
 
-	"sort"
-
 	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/schema"
+	"github.com/vitalyisaev2/memprofiler/server/config"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
 var _ Computer = (*defaultComputer)(nil)
 
 type defaultComputer struct {
-	logger logrus.FieldLogger
-	ctx    context.Context
-	cancel context.CancelFunc
-	wg     sync.WaitGroup
+	mutex    sync.RWMutex
+	sessions map[string]*sessionData
+	logger   logrus.FieldLogger
+	storage  storage.Storage
+	cfg      *config.MetricsConfig
+	wg       sync.WaitGroup
+	ctx      context.Context
+	cancel   context.CancelFunc
 }
 
-// SessionMetrics caches whole session data and computes statistics;
-// perhaps it worth make same effort to limit memory consumption
-func (c *defaultComputer) SessionMetrics(
+// PutMeasurement stores measurement within internal storage
+func (r *defaultComputer) PutMeasurement(sd *storage.SessionDescription, mm *schema.Measurement) error {
+	r.mutex.Lock()
+	data, exists := r.sessions[sd.String()]
+	if !exists {
+		data = newSessionData(r.logger, r.cfg.Window)
+		r.sessions[sd.String()] = data
+	}
+	r.mutex.Unlock()
+
+	data.registerMeasurement(mm)
+	return nil
+}
+
+// GetSessionMetrics extracts the most recent metrics of a particular session
+func (r *defaultComputer) GetSessionMetrics(
 	ctx context.Context,
-	dataLoader storage.DataLoader,
+	sd *storage.SessionDescription,
 ) (*schema.SessionMetrics, error) {
 
-	c.wg.Add(1)
-	defer func() {
-		if err := dataLoader.Close(); err != nil {
-			c.logger.WithError(err).Error("Failed to close data loader")
-		}
-		c.wg.Done()
-	}()
+	// get or create session data
+	r.mutex.Lock()
+	data, exists := r.sessions[sd.String()]
+	if !exists {
+		data = newSessionData(r.logger, r.cfg.Window)
+		r.sessions[sd.String()] = data
+	}
+	r.mutex.Unlock()
 
-	ss := newSessionStats()
-	loadChan, err := dataLoader.Load(ctx)
-	if err != nil {
-		return nil, err
+	// if metrics of outdated session has been requested,
+	// load data from storage and compute metrics from scratch
+	if !exists {
+		dataLoader, err := r.storage.NewDataLoader(sd)
+		if err != nil {
+			return nil, err
+		}
+
+		r.wg.Add(1)
+		defer func() {
+			if err = dataLoader.Close(); err != nil {
+				r.logger.WithError(err).Error("Failed to close data loader")
+			}
+			r.wg.Done()
+		}()
+
+		loadChan, err := dataLoader.Load(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := data.populate(ctx, loadChan); err != nil {
+			return nil, err
+		}
 	}
 
-	// populate stats with data coming from loader
-LOOP:
-	for {
-		select {
-		case data, ok := <-loadChan:
-			if !ok {
-				break LOOP
-			}
-			if data.Err != nil {
-				c.logger.WithError(data.Err).Error("Failed to get data from loader")
-			} else {
-				ss.registerMeasurement(data.Measurement)
-			}
-		case <-c.ctx.Done():
-			return nil, c.ctx.Err()
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		}
-	}
-
-	// by default sort by InUseBytes, because this tends to be the most import indicator
-	locations := ss.computeStatistics()
-	sort.Slice(locations, func(i, j int) bool {
-		// descending order
-		return locations[i].Average.InUseBytesRate > locations[j].Average.InUseBytesRate
-	})
-
-	result := &schema.SessionMetrics{Locations: locations}
-	return result, nil
+	return data.getSessionMetrics(), nil
 }
 
-func (c *defaultComputer) Quit() {
-	c.cancel()
-	c.wg.Wait()
+func (r *defaultComputer) populateSessionData(
+	ctx context.Context,
+	sd *storage.SessionDescription,
+) (*schema.SessionMetrics, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	// prepare new session data storage
+	r.mutex.Lock()
+	data := newSessionData(r.logger, r.cfg.Window)
+	r.sessions[sd.String()] = data
+	r.mutex.Unlock()
+
+	return data.getSessionMetrics(), nil
 }
 
-// New instantiates new Computer
-func New(logger logrus.FieldLogger) Computer {
+//sort.Slice(locations, func(i, j int) bool {
+//	// descending order
+//	return locations[i].Average.InUseBytesRate > locations[j].Average.InUseBytesRate
+//})
+
+func (r *defaultComputer) Quit() {
+	r.cancel()
+	r.wg.Wait()
+}
+
+// NewComputer instantiates new runner
+func NewComputer(logger logrus.FieldLogger, storage storage.Storage, cfg *config.MetricsConfig) Computer {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &defaultComputer{
-		logger: logger,
-		wg:     sync.WaitGroup{},
-		ctx:    ctx,
-		cancel: cancel,
+		logger:   logger,
+		sessions: make(map[string]*sessionData),
+		mutex:    sync.RWMutex{},
+		wg:       sync.WaitGroup{},
+		storage:  storage,
+		cfg:      cfg,
+		ctx:      ctx,
+		cancel:   cancel,
 	}
 }
