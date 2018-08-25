@@ -5,8 +5,6 @@ import (
 
 	"gonum.org/v1/gonum/stat"
 
-	"fmt"
-
 	"github.com/vitalyisaev2/memprofiler/schema"
 )
 
@@ -19,12 +17,13 @@ type locationData struct {
 	FreeObjects  []float64
 	InUseBytes   []float64
 	InUseObjects []float64
+	Timestamps   []float64
 	window       int
 	callStack    *schema.CallStack
 }
 
 // registerMeasurement appends new measurement to the process
-func (ld *locationData) registerMeasurement(mu *schema.MemoryUsage) {
+func (ld *locationData) registerMeasurement(timestamp float64, mu *schema.MemoryUsage) {
 
 	// shift series if the maximum capacity is achieved
 	if len(ld.AllocBytes) == ld.window {
@@ -34,6 +33,7 @@ func (ld *locationData) registerMeasurement(mu *schema.MemoryUsage) {
 		ld.FreeBytes = ld.FreeBytes[:ld.window-1]
 		ld.InUseObjects = ld.InUseObjects[:ld.window-1]
 		ld.InUseBytes = ld.InUseBytes[:ld.window-1]
+		ld.Timestamps = ld.Timestamps[:ld.window-1]
 	}
 
 	// add required data
@@ -43,11 +43,12 @@ func (ld *locationData) registerMeasurement(mu *schema.MemoryUsage) {
 	ld.FreeBytes = append(ld.FreeBytes, float64(mu.FreeBytes))
 	ld.InUseObjects = append(ld.InUseObjects, float64(mu.AllocObjects)-float64(mu.FreeObjects))
 	ld.InUseBytes = append(ld.InUseBytes, float64(mu.AllocBytes)-float64(mu.FreeBytes))
+	ld.Timestamps = append(ld.Timestamps, timestamp)
 }
 
 // computeMetrics performs stats computations for every stored time series;
 // the timestamps are shared between all session members and stored out there
-func (ld *locationData) computeMetrics(tstamps []float64) *schema.LocationMetrics {
+func (ld *locationData) computeMetrics() *schema.LocationMetrics {
 
 	rates := &schema.HeapConsumptionRates{}
 	ldValue := reflect.Indirect(reflect.ValueOf(ld))
@@ -56,10 +57,14 @@ func (ld *locationData) computeMetrics(tstamps []float64) *schema.LocationMetric
 	for i := 0; i < ldValue.NumField(); i++ {
 		ldField := ldValue.Field(i)
 
-		// if field type is []float64, perform computation
-		if ldField.Kind() == reflect.Slice && ldField.Type().Elem().Kind() == reflect.Float64 {
-			slope := computeSlope(tstamps, ldField.Interface().([]float64))
-			ratesField := ratesValue.FieldByName(ldValue.Type().Field(i).Name)
+		fieldName := ldValue.Type().Field(i).Name
+
+		// estimate regression parameters for every time series
+		if fieldName != "Timestamps" &&
+			ldField.Kind() == reflect.Slice &&
+			ldField.Type().Elem().Kind() == reflect.Float64 {
+			slope := computeSlope(ld.Timestamps, ldField.Interface().([]float64))
+			ratesField := ratesValue.FieldByName(fieldName)
 			ratesField.SetFloat(slope)
 		}
 	}
@@ -71,13 +76,12 @@ func (ld *locationData) computeMetrics(tstamps []float64) *schema.LocationMetric
 }
 
 // computeSlope computes the slope of linear regression equation,
-// which is equal to rate [units per second] or the first time derivative
+// which is equal to rate [units per second], or the first time derivative
 func computeSlope(tstamps, values []float64) float64 {
 	x := tstamps
 	if len(tstamps) != len(values) {
 		x = tstamps[len(values):]
 	}
-	fmt.Println(x, tstamps, values)
 	_, slope := stat.LinearRegression(x, values, nil, false)
 	return slope
 }

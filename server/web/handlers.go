@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"sort"
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/vitalyisaev2/memprofiler/schema"
@@ -32,6 +33,13 @@ func (s *server) computeSessionMetrics(w http.ResponseWriter, r *http.Request, p
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// sort results by InUseBytes rate, since it the most relevant indicator for memory leak
+	s.logger.Debug("sorting slice")
+	sort.Slice(result.Locations, func(i, j int) bool {
+		// descending order
+		return result.Locations[i].Rates.InUseBytes > result.Locations[j].Rates.InUseBytes
+	})
 
 	// dump to JSON
 	m := newJSONMarshaler()

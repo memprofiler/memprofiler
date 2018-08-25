@@ -19,7 +19,6 @@ import (
 // it's responsible for session metrics computation
 type sessionData struct {
 	mutex          sync.Mutex               // synchronizes access to internal structs
-	tstamps        []float64                // seconds since epoch
 	locations      map[string]*locationData // per-location stats (stackID <-> locationData)
 	window         int                      // length of time series tail kept in-memory
 	sessionMetrics *schema.SessionMetrics   // latest available session metrics (potentially outdated)
@@ -68,16 +67,12 @@ func (sd *sessionData) registerMeasurement(mm *schema.Measurement) error {
 // appendMeasurementu appends new measurement data to internal time series
 func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 
-	// shift tstamp series if it would exceed window size
-	if len(sd.tstamps) == sd.window {
-		sd.tstamps = sd.tstamps[:sd.window-1]
-	}
 	// register timestamp
-	tstamp, err := ptypes.Timestamp(mm.ObservedAt)
+	timestamp, err := ptypes.Timestamp(mm.ObservedAt)
 	if err != nil {
 		return err
 	}
-	sd.tstamps = append(sd.tstamps, utils.TimeToFloat64(tstamp))
+	timestampFloat := utils.TimeToFloat64(timestamp)
 
 	// build set of stackIDs registered so far
 	sessionLocations := mapset.NewSet()
@@ -98,7 +93,7 @@ func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 			sdl = newLocationData(l.CallStack, sd.window)
 			sd.locations[l.CallStack.ID] = sdl
 		}
-		sdl.registerMeasurement(l.MemoryUsage)
+		sdl.registerMeasurement(timestampFloat, l.MemoryUsage)
 	}
 
 	// there may be some locations registered within a session,
@@ -107,7 +102,7 @@ func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 	// so it's necessary to put zeroes for this location at the current timestamp
 	for _, stackID := range sessionLocations.Difference(mmLocations).ToSlice() {
 		sdl := sd.locations[stackID.(string)]
-		sdl.registerMeasurement(emptyMemoryUsage)
+		sdl.registerMeasurement(timestampFloat, emptyMemoryUsage)
 	}
 
 	// mark existing sessionMetrics as outdated
@@ -148,7 +143,7 @@ func (sd *sessionData) computeSessionMetrics() *schema.SessionMetrics {
 				if !ok {
 					return
 				}
-				responseChan <- ld.computeMetrics(sd.tstamps)
+				responseChan <- ld.computeMetrics()
 			}
 		}()
 	}
