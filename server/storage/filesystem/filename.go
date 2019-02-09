@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type measurementID uint32
@@ -27,6 +28,7 @@ func measurementIDFromString(s string) (measurementID, error) {
 	return measurementID(uint32(i)), nil
 }
 
-func makeFilename(subdir string, mmID measurementID) string {
-	return filepath.Join(subdir, mmID.String())
+func makeFilename(subdir string) string {
+	start := time.Now().Format(time.RFC3339)
+	return filepath.Join(subdir, start)
 }

@@ -11,37 +11,36 @@ import (
 
 var _ storage.DataSaver = (*defaultDataSaver)(nil)
 
-type defaultDataSaver struct {
-	codec codec
-	cache cache
+// record will be splitted just with new lines
+var delimiter = []byte{10}
 
-	subdirPath         string
+// defaultDataSaver puts records to a file sequentially
+type defaultDataSaver struct {
+	codec              codec
+	cache              cache
+	fd                 *os.File
 	serviceDescription *schema.ServiceDescription
 	sessionID          storage.SessionID
 	mmID               measurementID
-
-	cfg *config.FilesystemStorageConfig
-	wg  *sync.WaitGroup
+	cfg                *config.FilesystemStorageConfig
+	wg                 *sync.WaitGroup
 }
 
 func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 
-	// open file for writing
-	filePath := makeFilename(s.subdirPath, s.mmID)
-	fd, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, filePermissions)
-	if err != nil {
+	// put delimiter after last record
+	if _, err := s.fd.Write(delimiter); err != nil {
 		return err
 	}
-	defer fd.Close()
 
 	// serialize measurement into the file
-	if err := s.codec.encode(fd, mm); err != nil {
+	if err := s.codec.encode(s.fd, mm); err != nil {
 		return err
 	}
 
 	// sync file if required
 	if s.cfg.SyncWrite {
-		if err := fd.Sync(); err != nil {
+		if err := s.fd.Sync(); err != nil {
 			return err
 		}
 	}
@@ -65,8 +64,37 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 }
 
 func (s *defaultDataSaver) Close() error {
-	s.wg.Done()
-	return nil
+	defer s.wg.Done()
+	return s.fd.Close()
 }
 
 func (s *defaultDataSaver) SessionID() storage.SessionID { return s.sessionID }
+
+func newDataSaver(
+	subdirPath string,
+	serviceDescription *schema.ServiceDescription,
+	sessionID storage.SessionID,
+	cfg *config.FilesystemStorageConfig,
+	wg *sync.WaitGroup,
+	codec codec,
+	cache cache,
+) (storage.DataSaver, error) {
+
+	filePath := makeFilename(subdirPath)
+	fd, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, filePermissions)
+	if err != nil {
+		return nil, err
+	}
+
+	saver := &defaultDataSaver{
+		fd:                 fd,
+		codec:              codec,
+		cache:              cache,
+		serviceDescription: serviceDescription,
+		sessionID:          sessionID,
+		cfg:                cfg,
+		wg:                 wg,
+	}
+
+	return saver, nil
+}

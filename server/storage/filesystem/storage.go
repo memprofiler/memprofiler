@@ -67,17 +67,7 @@ func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.
 		}
 	}
 
-	saver := &defaultDataSaver{
-		subdirPath:         subdirPath,
-		serviceDescription: desc,
-		sessionID:          sessionID,
-		cache:              s.cache,
-		codec:              s.codec,
-		cfg:                s.cfg,
-		wg:                 &s.wg,
-	}
-
-	return saver, nil
+	return newDataSaver(subdirPath, desc, sessionID, s.cfg, &s.wg, s.codec, s.cache)
 }
 
 func (s *defaultStorage) NewDataLoader(sd *storage.SessionDescription) (storage.DataLoader, error) {
@@ -166,7 +156,7 @@ func NewStorage(logger logrus.FieldLogger, cfg *config.FilesystemStorageConfig) 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &defaultStorage{
-		codec:          &jsonCodec{},
+		codec:          newJSONCodec(),
 		sessionStorage: newSessionStorage(),
 		cfg:            cfg,
 		ctx:            ctx,

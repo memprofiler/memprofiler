@@ -3,9 +3,11 @@
 
 package schema
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -16,7 +18,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 // HeapConsumptionRates is a collection of rate values for memory consumption indicators.
 // Formally, the rate (or velocity) is the first time derivative of any memory consumption indicator.
@@ -37,16 +39,17 @@ func (m *HeapConsumptionRates) Reset()         { *m = HeapConsumptionRates{} }
 func (m *HeapConsumptionRates) String() string { return proto.CompactTextString(m) }
 func (*HeapConsumptionRates) ProtoMessage()    {}
 func (*HeapConsumptionRates) Descriptor() ([]byte, []int) {
-	return fileDescriptor_metrics_29f826cdfdb4e27c, []int{0}
+	return fileDescriptor_6039342a2ba47b72, []int{0}
 }
+
 func (m *HeapConsumptionRates) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_HeapConsumptionRates.Unmarshal(m, b)
 }
 func (m *HeapConsumptionRates) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_HeapConsumptionRates.Marshal(b, m, deterministic)
 }
-func (dst *HeapConsumptionRates) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HeapConsumptionRates.Merge(dst, src)
+func (m *HeapConsumptionRates) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_HeapConsumptionRates.Merge(m, src)
 }
 func (m *HeapConsumptionRates) XXX_Size() int {
 	return xxx_messageInfo_HeapConsumptionRates.Size(m)
@@ -116,16 +119,17 @@ func (m *LocationMetrics) Reset()         { *m = LocationMetrics{} }
 func (m *LocationMetrics) String() string { return proto.CompactTextString(m) }
 func (*LocationMetrics) ProtoMessage()    {}
 func (*LocationMetrics) Descriptor() ([]byte, []int) {
-	return fileDescriptor_metrics_29f826cdfdb4e27c, []int{1}
+	return fileDescriptor_6039342a2ba47b72, []int{1}
 }
+
 func (m *LocationMetrics) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_LocationMetrics.Unmarshal(m, b)
 }
 func (m *LocationMetrics) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_LocationMetrics.Marshal(b, m, deterministic)
 }
-func (dst *LocationMetrics) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_LocationMetrics.Merge(dst, src)
+func (m *LocationMetrics) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LocationMetrics.Merge(m, src)
 }
 func (m *LocationMetrics) XXX_Size() int {
 	return xxx_messageInfo_LocationMetrics.Size(m)
@@ -162,16 +166,17 @@ func (m *SessionMetrics) Reset()         { *m = SessionMetrics{} }
 func (m *SessionMetrics) String() string { return proto.CompactTextString(m) }
 func (*SessionMetrics) ProtoMessage()    {}
 func (*SessionMetrics) Descriptor() ([]byte, []int) {
-	return fileDescriptor_metrics_29f826cdfdb4e27c, []int{2}
+	return fileDescriptor_6039342a2ba47b72, []int{2}
 }
+
 func (m *SessionMetrics) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SessionMetrics.Unmarshal(m, b)
 }
 func (m *SessionMetrics) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_SessionMetrics.Marshal(b, m, deterministic)
 }
-func (dst *SessionMetrics) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SessionMetrics.Merge(dst, src)
+func (m *SessionMetrics) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SessionMetrics.Merge(m, src)
 }
 func (m *SessionMetrics) XXX_Size() int {
 	return xxx_messageInfo_SessionMetrics.Size(m)
@@ -195,9 +200,9 @@ func init() {
 	proto.RegisterType((*SessionMetrics)(nil), "schema.SessionMetrics")
 }
 
-func init() { proto.RegisterFile("metrics.proto", fileDescriptor_metrics_29f826cdfdb4e27c) }
+func init() { proto.RegisterFile("metrics.proto", fileDescriptor_6039342a2ba47b72) }
 
-var fileDescriptor_metrics_29f826cdfdb4e27c = []byte{
+var fileDescriptor_6039342a2ba47b72 = []byte{
 	// 270 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x51, 0xed, 0x4a, 0x03, 0x31,
 	0x10, 0xe4, 0xac, 0x3d, 0xb8, 0x3d, 0x3f, 0x68, 0x10, 0x2c, 0x52, 0xa4, 0xdc, 0xaf, 0xfe, 0x3a,

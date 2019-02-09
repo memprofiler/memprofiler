@@ -32,7 +32,7 @@ type MetadataStorage interface {
 
 // DataSaver is responsible for saving service instance data into the storage
 type DataSaver interface {
-	// Save puts measurement into persistant storage
+	// Save puts measurement into persistent storage
 	Save(*schema.Measurement) error
 	// SessionID returns ID assigned to current steaming session
 	SessionID() SessionID
