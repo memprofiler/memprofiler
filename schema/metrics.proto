@@ -22,8 +22,8 @@ message LocationMetrics {
     // Rates represents heap consumption rates estimated
     // for some averaging window defined by server
     HeapConsumptionRates Rates = 1;
-    // CallStack describes location in code where the allocation occured
-    CallStack CallStack = 2;
+    // Callstack describes location in code where the allocation occured
+    Callstack Callstack = 2;
 }
 
 // SessionMetrics contains list of heap allocation metrics per every location

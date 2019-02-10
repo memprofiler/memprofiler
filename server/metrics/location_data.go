@@ -19,7 +19,7 @@ type locationData struct {
 	InUseObjects []float64
 	Timestamps   []float64
 	window       int
-	callStack    *schema.CallStack
+	callStack    *schema.Callstack
 }
 
 // registerMeasurement appends new measurement to the process
@@ -71,7 +71,7 @@ func (ld *locationData) computeMetrics() *schema.LocationMetrics {
 
 	return &schema.LocationMetrics{
 		Rates:     rates,
-		CallStack: ld.callStack,
+		Callstack: ld.callStack,
 	}
 }
 
@@ -86,7 +86,7 @@ func computeSlope(tstamps, values []float64) float64 {
 	return slope
 }
 
-func newLocationData(callStack *schema.CallStack, window int) *locationData {
+func newLocationData(callStack *schema.Callstack, window int) *locationData {
 	return &locationData{
 		callStack:    callStack,
 		window:       window,

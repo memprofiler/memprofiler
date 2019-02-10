@@ -18,8 +18,8 @@ func UpdateMemoryUsage(mu *schema.MemoryUsage, r *runtime.MemProfileRecord) {
 	mu.FreeBytes += r.FreeBytes
 }
 
-// FillCallStack uses raw data to populate stack
-func FillCallStack(cs *schema.CallStack, rawStack []uintptr, allFrames bool) {
+// FillCallstack uses raw data to populate stack
+func FillCallstack(cs *schema.Callstack, rawStack []uintptr, allFrames bool) {
 	var (
 		show   = allFrames
 		frames = runtime.CallersFrames(rawStack)
@@ -40,12 +40,12 @@ func FillCallStack(cs *schema.CallStack, rawStack []uintptr, allFrames bool) {
 	}
 
 	if !show {
-		FillCallStack(cs, rawStack, true)
+		FillCallstack(cs, rawStack, true)
 	}
 }
 
-// HashCallStack computes a hash value for a stack (useful for stack comparison etc.)
-func HashCallStack(cs *schema.CallStack) (string, error) {
+// HashCallstack computes a hash value for a stack (useful for stack comparison etc.)
+func HashCallstack(cs *schema.Callstack) (string, error) {
 	h := md5.New()
 
 	for _, sf := range cs.Frames {

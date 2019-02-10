@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"os"
+	"path/filepath"
 	"sync"
 
 	"github.com/vitalyisaev2/memprofiler/schema"
@@ -11,16 +12,14 @@ import (
 
 var _ storage.DataSaver = (*defaultDataSaver)(nil)
 
-// record will be splitted just with new lines
-var delimiter = []byte{10}
+var delimiter = []byte{10} // '\n'
 
 // defaultDataSaver puts records to a file sequentially
 type defaultDataSaver struct {
 	codec              codec
 	cache              cache
 	fd                 *os.File
-	serviceDescription *schema.ServiceDescription
-	sessionID          storage.SessionID
+	sessionDescription *storage.SessionDescription
 	mmID               measurementID
 	cfg                *config.FilesystemStorageConfig
 	wg                 *sync.WaitGroup
@@ -48,11 +47,8 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 	// put record to cache
 	if s.cache != nil {
 		mmMeta := &measurementMetadata{
-			SessionDescription: storage.SessionDescription{
-				ServiceDescription: s.serviceDescription,
-				SessionID:          s.sessionID,
-			},
-			mmID: s.mmID,
+			session: s.sessionDescription,
+			mmID:    s.mmID,
 		}
 		s.cache.put(mmMeta, mm)
 	}
@@ -68,7 +64,7 @@ func (s *defaultDataSaver) Close() error {
 	return s.fd.Close()
 }
 
-func (s *defaultDataSaver) SessionID() storage.SessionID { return s.sessionID }
+func (s *defaultDataSaver) SessionID() storage.SessionID { return s.sessionDescription.SessionID }
 
 func newDataSaver(
 	subdirPath string,
@@ -80,20 +76,23 @@ func newDataSaver(
 	cache cache,
 ) (storage.DataSaver, error) {
 
-	filePath := makeFilename(subdirPath)
-	fd, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, filePermissions)
+	// open file to store records
+	filename := filepath.Join(subdirPath, "data")
+	fd, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, filePermissions)
 	if err != nil {
 		return nil, err
 	}
 
 	saver := &defaultDataSaver{
-		fd:                 fd,
-		codec:              codec,
-		cache:              cache,
-		serviceDescription: serviceDescription,
-		sessionID:          sessionID,
-		cfg:                cfg,
-		wg:                 wg,
+		fd:    fd,
+		codec: codec,
+		cache: cache,
+		sessionDescription: &storage.SessionDescription{
+			ServiceDescription: serviceDescription,
+			SessionID:          sessionID,
+		},
+		cfg: cfg,
+		wg:  wg,
 	}
 
 	return saver, nil

@@ -80,16 +80,16 @@ func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 
 	// iterate over profiler records, prepare structures to be sent to the server
 	for _, record := range records {
-		cs := &schema.CallStack{}
-		utils.FillCallStack(cs, record.Stack(), false)
-		cs.ID, err = utils.HashCallStack(cs)
+		cs := &schema.Callstack{}
+		utils.FillCallstack(cs, record.Stack(), false)
+		cs.ID, err = utils.HashCallstack(cs)
 		if err != nil {
 			return nil, err
 		}
 
 		location, exists := stacks[cs.ID]
 		if !exists {
-			location = &schema.Location{CallStack: cs, MemoryUsage: &schema.MemoryUsage{}}
+			location = &schema.Location{Callstack: cs, MemoryUsage: &schema.MemoryUsage{}}
 			stacks[cs.ID] = location
 		}
 

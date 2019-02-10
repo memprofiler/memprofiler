@@ -23,48 +23,48 @@ message SaveResponse {
 
 // ServiceDescription describes the service whose memory stats is being tracked
 message ServiceDescription {
-    // type - service entity in general
-    string Type = 1;
+    // type - general service description
+    string type = 1;
     // instance - description of a particular service instance
-    string Instance = 2;
+    string instance = 2;
 }
 
 // Measurement contains instantaneous memory usage stats
 message Measurement {
     // observed_at - measurement timestamp
-    google.protobuf.Timestamp ObservedAt = 1;
+    google.protobuf.Timestamp observed_at = 1;
     // locations - list of known memory allocations occured in a process
-    repeated Location Locations = 2;
+    repeated Location locations = 2;
 }
 
 // Location contains memory allocation stats with
 // information about where memory was actually allocated
 message Location {
-    MemoryUsage MemoryUsage = 1;
-    CallStack CallStack = 2;
+    MemoryUsage memory_usage = 1;
+    Callstack callstack = 2;
 }
 
 // MemoryUsage contains memory usage stats for a particular call stack;
 // this stats comes directly from Go runtime
 message MemoryUsage {
-    int64 AllocObjects = 1;
-    int64 AllocBytes = 2;
-    int64 FreeObjects = 3;
-    int64 FreeBytes = 4;
+    int64 alloc_objects = 1;
+    int64 alloc_bytes = 2;
+    int64 free_objects = 3;
+    int64 free_bytes = 4;
 }
 
-// CallStack describes call stack of memory allocation event
-message CallStack {
-    // ID represents unique identifier for a particular stack
-    string ID = 1;
-    // Frames describes the code where heap allocation occured
-    repeated StackFrame Frames = 2;
+// Callstack describes call stack of memory allocation event
+message Callstack {
+    // id represents unique identifier for a particular stack
+    string id = 1;
+    // frames describes the place code where heap allocation occured
+    repeated StackFrame frames = 2;
 }
 
 // StackFrame provides information about a single stack frame
 message StackFrame {
-    string Name = 1;
-    string File = 2;
-    int32 Line = 3;
+    string name = 1;
+    string file = 2;
+    int32 line = 3;
 }
 

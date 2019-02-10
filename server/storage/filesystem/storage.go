@@ -79,18 +79,7 @@ func (s *defaultStorage) NewDataLoader(sd *storage.SessionDescription) (storage.
 		s.wg.Add(1)
 	}
 
-	// prepare list of files with measurement dumps
-	subdirPath := s.makeSubdirPath(sd)
-
-	loader := &defaultDataLoader{
-		subdirPath: subdirPath,
-		sd:         sd,
-		cache:      s.cache,
-		codec:      s.codec,
-		logger:     s.logger,
-		wg:         &s.wg,
-	}
-	return loader, nil
+	return newDataLoader(s.makeSubdirPath(sd), sd, s.cache, s.codec, s.logger, &s.wg)
 }
 
 // makeSubdirPath builds a path for a filesystem direcory with instance data

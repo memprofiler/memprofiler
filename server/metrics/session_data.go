@@ -83,15 +83,15 @@ func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 	// build set of stackIDs that came with a current message
 	mmLocations := mapset.NewSet()
 	for _, l := range mm.Locations {
-		mmLocations.Add(l.CallStack.ID)
+		mmLocations.Add(l.Callstack.Id)
 	}
 
 	// iterate through incoming message and register measurements
 	for _, l := range mm.Locations {
-		sdl, exists := sd.locations[l.CallStack.ID]
+		sdl, exists := sd.locations[l.Callstack.Id]
 		if !exists {
-			sdl = newLocationData(l.CallStack, sd.window)
-			sd.locations[l.CallStack.ID] = sdl
+			sdl = newLocationData(l.Callstack, sd.window)
+			sd.locations[l.Callstack.Id] = sdl
 		}
 		sdl.registerMeasurement(timestampFloat, l.MemoryUsage)
 	}

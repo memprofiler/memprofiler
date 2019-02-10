@@ -19,7 +19,7 @@ var (
 		Instance: "local",
 	}
 	stubMMMeta = &measurementMetadata{
-		SessionDescription: storage.SessionDescription{
+		session: &storage.SessionDescription{
 			ServiceDescription: stubServiceDescription,
 			SessionID:          1,
 		},
@@ -33,7 +33,7 @@ var (
 		Locations: []*schema.Location{
 			{
 				MemoryUsage: &schema.MemoryUsage{AllocObjects: 1, AllocBytes: 2, FreeObjects: 3, FreeBytes: 4},
-				CallStack: &schema.CallStack{
+				Callstack: &schema.Callstack{
 					Frames: []*schema.StackFrame{
 						{
 							Name: "a",

@@ -25,7 +25,7 @@ func init() {
 // A trivial case, when every indicator is incremented once per second within a single location
 func TestSessionData_LinearGrowth(t *testing.T) {
 
-	cs := &schema.CallStack{
+	cs := &schema.Callstack{
 		Frames: []*schema.StackFrame{
 			{File: "a.go", Line: 1},
 			{File: "b.go", Line: 2},
@@ -37,7 +37,7 @@ func TestSessionData_LinearGrowth(t *testing.T) {
 		Locations: []*schema.Location{
 			{
 				MemoryUsage: &schema.MemoryUsage{AllocBytes: 0, AllocObjects: 0, FreeBytes: 0, FreeObjects: 0},
-				CallStack:   cs,
+				Callstack:   cs,
 			},
 		},
 		ObservedAt: &timestamp.Timestamp{Seconds: 0},
@@ -47,7 +47,7 @@ func TestSessionData_LinearGrowth(t *testing.T) {
 		Locations: []*schema.Location{
 			{
 				MemoryUsage: &schema.MemoryUsage{AllocBytes: 1, AllocObjects: 1, FreeBytes: 1, FreeObjects: 1},
-				CallStack:   cs,
+				Callstack:   cs,
 			},
 		},
 		ObservedAt: &timestamp.Timestamp{Seconds: 1},
@@ -57,7 +57,7 @@ func TestSessionData_LinearGrowth(t *testing.T) {
 		Locations: []*schema.Location{
 			{
 				MemoryUsage: &schema.MemoryUsage{AllocBytes: 2, AllocObjects: 2, FreeBytes: 2, FreeObjects: 2},
-				CallStack:   cs,
+				Callstack:   cs,
 			},
 		},
 		ObservedAt: &timestamp.Timestamp{Seconds: 2},
@@ -74,7 +74,7 @@ func TestSessionData_LinearGrowth(t *testing.T) {
 	sm := data.getSessionMetrics()
 	assert.Len(t, sm.Locations, 1)
 	lm := sm.Locations[0]
-	assert.Equal(t, cs, lm.CallStack)
+	assert.Equal(t, cs, lm.Callstack)
 
 	// for alloc/free rate is 1 unit per second
 	assert.Equal(t, float64(1), lm.Rates.AllocBytes)

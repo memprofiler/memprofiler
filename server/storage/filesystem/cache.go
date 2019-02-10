@@ -6,15 +6,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/vitalyisaev2/memprofiler/server/storage"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/config"
-	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
+type measurementID uint
+
 type measurementMetadata struct {
-	storage.SessionDescription
-	mmID measurementID
+	session *storage.SessionDescription
+	mmID    measurementID
 }
 
 type measurementCached struct {
@@ -23,7 +26,7 @@ type measurementCached struct {
 }
 
 func (meta *measurementMetadata) String() string {
-	return fmt.Sprintf("%s::%d", meta.SessionDescription.String(), meta.mmID)
+	return fmt.Sprintf("%s::%d", meta.session.String(), meta.mmID)
 }
 
 type cache interface {
@@ -101,7 +104,7 @@ func (c *boundedLRUCache) collectGarbage() {
 	ttl := time.Duration(-1*c.cfg.TTL) * time.Second
 	outdated := time.Now().Add(ttl).Unix()
 
-	// create timer to control GC's session duration
+	// create timer to control GC's sessionDescription duration
 	maxGCPause := time.Duration(c.cfg.GCMaxPause) * time.Second
 	timer := time.NewTimer(maxGCPause)
 	for k, v := range c.values {
