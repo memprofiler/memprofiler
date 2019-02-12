@@ -82,15 +82,15 @@ func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 	for _, record := range records {
 		cs := &schema.Callstack{}
 		utils.FillCallstack(cs, record.Stack(), false)
-		cs.ID, err = utils.HashCallstack(cs)
+		cs.Id, err = utils.HashCallstack(cs)
 		if err != nil {
 			return nil, err
 		}
 
-		location, exists := stacks[cs.ID]
+		location, exists := stacks[cs.Id]
 		if !exists {
 			location = &schema.Location{Callstack: cs, MemoryUsage: &schema.MemoryUsage{}}
-			stacks[cs.ID] = location
+			stacks[cs.Id] = location
 		}
 
 		utils.UpdateMemoryUsage(location.MemoryUsage, &record)

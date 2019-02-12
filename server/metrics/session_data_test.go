@@ -30,7 +30,7 @@ func TestSessionData_LinearGrowth(t *testing.T) {
 			{File: "a.go", Line: 1},
 			{File: "b.go", Line: 2},
 		},
-		ID: "abcd",
+		Id: "abcd",
 	}
 
 	mm0 := &schema.Measurement{

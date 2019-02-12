@@ -17,10 +17,8 @@ var delimiter = []byte{10} // '\n'
 // defaultDataSaver puts records to a file sequentially
 type defaultDataSaver struct {
 	codec              codec
-	cache              cache
 	fd                 *os.File
 	sessionDescription *storage.SessionDescription
-	mmID               measurementID
 	cfg                *config.FilesystemStorageConfig
 	wg                 *sync.WaitGroup
 }
@@ -44,18 +42,6 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 		}
 	}
 
-	// put record to cache
-	if s.cache != nil {
-		mmMeta := &measurementMetadata{
-			session: s.sessionDescription,
-			mmID:    s.mmID,
-		}
-		s.cache.put(mmMeta, mm)
-	}
-
-	// increment measurement ID
-	s.mmID++
-
 	return nil
 }
 
@@ -73,7 +59,6 @@ func newDataSaver(
 	cfg *config.FilesystemStorageConfig,
 	wg *sync.WaitGroup,
 	codec codec,
-	cache cache,
 ) (storage.DataSaver, error) {
 
 	// open file to store records
@@ -86,7 +71,6 @@ func newDataSaver(
 	saver := &defaultDataSaver{
 		fd:    fd,
 		codec: codec,
-		cache: cache,
 		sessionDescription: &storage.SessionDescription{
 			ServiceDescription: serviceDescription,
 			SessionID:          sessionID,

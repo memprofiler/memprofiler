@@ -15,12 +15,10 @@ import (
 )
 
 type defaultDataLoader struct {
-	cache  cache
 	codec  codec
 	sd     *storage.SessionDescription
 	fd     *os.File
 	logger logrus.FieldLogger
-	mmID   measurementID
 	wg     *sync.WaitGroup
 }
 
@@ -40,54 +38,24 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 	go func() {
 		defer close(results)
 		for scanner.Scan() {
-			select {
-			case results <- l.loadMeasurement(scanner.Bytes()):
-			case <-ctx.Done():
-				return
+			if len(scanner.Bytes()) > 0 {
+				select {
+				case results <- l.loadMeasurement(scanner.Bytes()):
+				case <-ctx.Done():
+					return
+				}
 			}
-			l.mmID++
 		}
 	}()
 
 	return results, nil
 }
 
-// loadMeasurement loads data either from in-memory cache, either from disk
+// loadMeasurement disk
 func (l *defaultDataLoader) loadMeasurement(data []byte) *storage.LoadResult {
-
-	meta := &measurementMetadata{
-		session: l.sd,
-		mmID:    l.mmID,
-	}
-
-	// try to load data from cache of unmarshaled values
-	if cached := l.loadMeasurementFromCache(meta); cached != nil {
-		return &storage.LoadResult{Measurement: cached}
-	}
-
-	// if value is missing in cache, take it directly from disk
 	var receiver schema.Measurement
 	err := l.codec.decode(bytes.NewReader(data), &receiver)
-	if err == nil {
-		// put it into cache
-		l.cache.put(meta, &receiver)
-	}
 	return &storage.LoadResult{Measurement: &receiver, Err: err}
-}
-
-func (l *defaultDataLoader) loadMeasurementFromCache(mmMeta *measurementMetadata) *schema.Measurement {
-	if l.cache == nil {
-		return nil
-	}
-	value, _ := l.cache.get(mmMeta)
-	return value
-}
-
-func (l *defaultDataLoader) saveMeasurementToCache(mmMeta *measurementMetadata, mm *schema.Measurement) {
-	if l.cache == nil {
-		return
-	}
-	l.cache.put(mmMeta, mm)
 }
 
 func (l *defaultDataLoader) Close() error {
@@ -98,7 +66,6 @@ func (l *defaultDataLoader) Close() error {
 func newDataLoader(
 	subdirPath string,
 	sd *storage.SessionDescription,
-	cache cache,
 	codec codec,
 	logger logrus.FieldLogger,
 	wg *sync.WaitGroup,
@@ -121,7 +88,6 @@ func newDataLoader(
 	loader := &defaultDataLoader{
 		sd:     sd,
 		fd:     fd,
-		cache:  cache,
 		codec:  codec,
 		logger: contextLogger,
 		wg:     wg,

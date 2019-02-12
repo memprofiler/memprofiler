@@ -23,7 +23,6 @@ var _ storage.Storage = (*defaultStorage)(nil)
 // measurements - distinct files within sessions subdirectories;
 type defaultStorage struct {
 	sessionStorage
-	cache  cache
 	codec  codec
 	cfg    *config.FilesystemStorageConfig
 	ctx    context.Context
@@ -67,7 +66,7 @@ func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.
 		}
 	}
 
-	return newDataSaver(subdirPath, desc, sessionID, s.cfg, &s.wg, s.codec, s.cache)
+	return newDataSaver(subdirPath, desc, sessionID, s.cfg, &s.wg, s.codec)
 }
 
 func (s *defaultStorage) NewDataLoader(sd *storage.SessionDescription) (storage.DataLoader, error) {
@@ -79,7 +78,7 @@ func (s *defaultStorage) NewDataLoader(sd *storage.SessionDescription) (storage.
 		s.wg.Add(1)
 	}
 
-	return newDataLoader(s.makeSubdirPath(sd), sd, s.cache, s.codec, s.logger, &s.wg)
+	return newDataLoader(s.makeSubdirPath(sd), sd, s.codec, s.logger, &s.wg)
 }
 
 // makeSubdirPath builds a path for a filesystem direcory with instance data
@@ -95,9 +94,6 @@ func (s *defaultStorage) makeSubdirPath(sd *storage.SessionDescription) string {
 func (s *defaultStorage) Quit() {
 	s.cancel()
 	s.wg.Wait()
-	if s.cache != nil {
-		s.cache.quit()
-	}
 }
 
 func (s *defaultStorage) populateSessionStorage() error {
@@ -152,10 +148,6 @@ func NewStorage(logger logrus.FieldLogger, cfg *config.FilesystemStorageConfig) 
 		cancel:         cancel,
 		wg:             sync.WaitGroup{},
 		logger:         logger,
-	}
-
-	if cfg.Cache != nil {
-		s.cache = newCache(*cfg.Cache)
 	}
 
 	// traverse dirs and find previously stored data
