@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"runtime"
+	"time"
 
 	"sync"
 
@@ -12,18 +13,18 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/schema"
 	"github.com/vitalyisaev2/memprofiler/server/storage"
-	"github.com/vitalyisaev2/memprofiler/utils"
 )
 
 // sessionData contains the most recent data of the particular session;
 // it's responsible for session metrics computation
 type sessionData struct {
-	mutex          sync.Mutex               // synchronizes access to internal structs
-	locations      map[string]*locationData // per-location stats (stackID <-> locationData)
-	window         int                      // length of time series tail kept in-memory
-	sessionMetrics *schema.SessionMetrics   // latest available session metrics (potentially outdated)
-	outdated       bool                     // if metrics should be recomputed by demand
-	logger         logrus.FieldLogger
+	mutex            sync.Mutex               // synchronizes access to internal structs
+	locations        map[string]*locationData // per-location stats (stackID <-> locationData)
+	lifetime         time.Duration            // the retention period for time series data
+	sessionMetrics   *schema.SessionMetrics   // latest available session metrics (potentially outdated)
+	averagingWindows []time.Duration
+	outdated         bool // if metrics should be recomputed by demand
+	logger           logrus.FieldLogger
 }
 
 func (sd *sessionData) populate(
@@ -64,7 +65,7 @@ func (sd *sessionData) registerMeasurement(mm *schema.Measurement) error {
 	return sd.appendMeasurement(mm)
 }
 
-// appendMeasurementu appends new measurement data to internal time series
+// appendMeasurement appends new measurement data to internal time series
 func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 
 	// register timestamp
@@ -72,7 +73,6 @@ func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 	if err != nil {
 		return err
 	}
-	timestampFloat := utils.TimeToFloat64(timestamp)
 
 	// build set of stackIDs registered so far
 	sessionLocations := mapset.NewSet()
@@ -90,10 +90,10 @@ func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 	for _, l := range mm.Locations {
 		sdl, exists := sd.locations[l.Callstack.Id]
 		if !exists {
-			sdl = newLocationData(l.Callstack, sd.window)
+			sdl = newLocationData(l.Callstack, sd.lifetime)
 			sd.locations[l.Callstack.Id] = sdl
 		}
-		sdl.registerMeasurement(timestampFloat, l.MemoryUsage)
+		sdl.registerMeasurement(timestamp, l.MemoryUsage)
 	}
 
 	// there may be some locations registered within a session,
@@ -102,7 +102,7 @@ func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 	// so it's necessary to put zeroes for this location at the current timestamp
 	for _, stackID := range sessionLocations.Difference(mmLocations).ToSlice() {
 		sdl := sd.locations[stackID.(string)]
-		sdl.registerMeasurement(timestampFloat, emptyMemoryUsage)
+		sdl.registerMeasurement(timestamp, emptyMemoryUsage)
 	}
 
 	// mark existing sessionMetrics as outdated
@@ -143,7 +143,7 @@ func (sd *sessionData) computeSessionMetrics() *schema.SessionMetrics {
 				if !ok {
 					return
 				}
-				responseChan <- ld.computeMetrics()
+				responseChan <- ld.computeMetrics(sd.averagingWindows)
 			}
 		}()
 	}
@@ -166,10 +166,11 @@ func (sd *sessionData) computeSessionMetrics() *schema.SessionMetrics {
 }
 
 // newSessionData instantiates new
-func newSessionData(logger logrus.FieldLogger, window int) *sessionData {
+func newSessionData(logger logrus.FieldLogger, averagingWindows []time.Duration) *sessionData {
 	return &sessionData{
-		locations: make(map[string]*locationData),
-		window:    window,
-		logger:    logger,
+		locations:        make(map[string]*locationData),
+		lifetime:         averagingWindows[len(averagingWindows)-1],
+		averagingWindows: averagingWindows,
+		logger:           logger,
 	}
 }

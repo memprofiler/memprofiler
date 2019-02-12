@@ -19,7 +19,10 @@ storage:
 
 # metrics
 metrics:
-  window: 50
+  # list of ISO 8601 duration values
+  averaging_windows:
+    - PT30S
+    - PT5M
 
 # logging
 logging:
