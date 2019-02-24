@@ -11,18 +11,13 @@ storage:
   filesystem:
     data_dir: "/tmp/memprofiler"
     sync_write: false
-    cache:
-      max_total_size: 1073741824  # 1GB
-      ttl: 900                    # 15 minutes
-      gc_frequency: 10            # 10 seconds
-      gc_max_pause: 1             # 1 second
 
 # metrics
 metrics:
   # list of ISO 8601 duration values
   averaging_windows:
-    - PT30S
-    - PT5M
+    - PT30S   # 30 seconds
+    - PT5M    # 5 minutes
 
 # logging
 logging:
