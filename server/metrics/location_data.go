@@ -70,14 +70,13 @@ func (ld *locationData) computeMetrics(spans []time.Duration) *schema.LocationMe
 	// x axis values
 	timestampFloats := timestampsToFloats(ld.Timestamps)
 
-	rates := make([]*schema.MemoryUtilizationRate, len(spans))
-	result := &schema.LocationMetrics{Callstack: ld.callStack, Rates: rates}
+	rates := make([]*schema.MemoryUtilizationRate, 0, len(spans))
 
-	for i, span := range spans {
-		rate := ld.computeMetricsForSpan(span, timestampFloats)
-		rates[i] = rate
+	// compute trends for every span (or averaging window)
+	for _, span := range spans {
+		rates = append(rates, ld.computeMetricsForSpan(span, timestampFloats))
 	}
-	return result
+	return &schema.LocationMetrics{Callstack: ld.callStack, Rates: rates}
 }
 
 // computeMetricsForSpan performs stats computation for a particular time span
@@ -94,7 +93,9 @@ func (ld *locationData) computeMetricsForSpan(
 		Span:   ptypes.DurationProto(span),
 	}
 
-	// walk through fields and cast
+	// The source time series are locationData's []float64 slices (called AllocBytes, AllocObjects, ...).
+	// The destination trends are MemoryUtilizationRate.Values (also called AllocBytes, AllocObjects, ...).
+	// Using the power of reflection, we walk through these two structs and compute trends one by one
 	src := reflect.Indirect(reflect.ValueOf(ld))
 	dst := reflect.Indirect(reflect.ValueOf(result.Values))
 	for i := 0; i < src.NumField(); i++ {
