@@ -3,7 +3,7 @@ package client
 import (
 	"time"
 
-	"github.com/vitalyisaev2/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/schema"
 )
 
 // Config holds various settings for memprofiler client

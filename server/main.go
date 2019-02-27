@@ -4,7 +4,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/vitalyisaev2/memprofiler/server/config"
+	"github.com/memprofiler/memprofiler/server/config"
 )
 
 func main() {

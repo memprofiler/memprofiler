@@ -7,7 +7,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/vitalyisaev2/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/schema"
 )
 
 // UpdateMemoryUsage updates MemoryUsage fields with values obtained from runtime

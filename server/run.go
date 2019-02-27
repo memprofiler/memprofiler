@@ -6,11 +6,11 @@ import (
 	"syscall"
 
 	"github.com/sirupsen/logrus"
-	"github.com/vitalyisaev2/memprofiler/server/api"
-	"github.com/vitalyisaev2/memprofiler/server/common"
-	"github.com/vitalyisaev2/memprofiler/server/config"
-	"github.com/vitalyisaev2/memprofiler/server/locator"
-	"github.com/vitalyisaev2/memprofiler/server/web"
+	"github.com/memprofiler/memprofiler/server/backend"
+	"github.com/memprofiler/memprofiler/server/common"
+	"github.com/memprofiler/memprofiler/server/config"
+	"github.com/memprofiler/memprofiler/server/locator"
+	"github.com/memprofiler/memprofiler/server/frontend"
 )
 
 func run(cfg *config.Config) error {
@@ -87,13 +87,13 @@ func runServices(
 	)
 
 	// 1. GRPC API
-	ss[labelAPI], err = api.NewServer(cfg.API, locator, errChan)
+	ss[labelAPI], err = backend.NewServer(cfg.API, locator, errChan)
 	if err != nil {
 		return nil, err
 	}
 
 	// 2. Web
-	ss[labelWeb], err = web.NewServer(cfg.Web, locator, errChan)
+	ss[labelWeb], err = frontend.NewServer(cfg.Web, locator, errChan)
 	if err != nil {
 		return nil, err
 	}

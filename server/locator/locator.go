@@ -2,10 +2,10 @@ package locator
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/vitalyisaev2/memprofiler/server/config"
-	"github.com/vitalyisaev2/memprofiler/server/metrics"
-	"github.com/vitalyisaev2/memprofiler/server/storage"
-	"github.com/vitalyisaev2/memprofiler/server/storage/filesystem"
+	"github.com/memprofiler/memprofiler/server/config"
+	"github.com/memprofiler/memprofiler/server/metrics"
+	"github.com/memprofiler/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/server/storage/filesystem"
 )
 
 // Locator stores various server subsystems

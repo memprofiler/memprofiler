@@ -1,15 +1,15 @@
-package api
+package backend
 
 //go:generate stringer -type=saveStateCode ./save_protocol.go
 
 import (
 	"fmt"
 
+	"github.com/memprofiler/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/server/locator"
+	"github.com/memprofiler/memprofiler/server/metrics"
+	"github.com/memprofiler/memprofiler/server/storage"
 	"github.com/sirupsen/logrus"
-	"github.com/vitalyisaev2/memprofiler/schema"
-	"github.com/vitalyisaev2/memprofiler/server/locator"
-	"github.com/vitalyisaev2/memprofiler/server/metrics"
-	"github.com/vitalyisaev2/memprofiler/server/storage"
 )
 
 // saveState implements state pattern for handling save requests

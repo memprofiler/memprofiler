@@ -11,8 +11,8 @@ import (
 	"github.com/deckarep/golang-set"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/sirupsen/logrus"
-	"github.com/vitalyisaev2/memprofiler/schema"
-	"github.com/vitalyisaev2/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/server/storage"
 )
 
 // sessionData contains the most recent data of the particular session;

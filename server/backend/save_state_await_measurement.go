@@ -1,7 +1,7 @@
-package api
+package backend
 
 import (
-	"github.com/vitalyisaev2/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/schema"
 )
 
 var _ saveState = (*saveStateAwaitMeasurement)(nil)
