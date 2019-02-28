@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/sirupsen/logrus"
 	"github.com/vitalyisaev2/memprofiler/schema"
@@ -28,13 +29,12 @@ func (r *defaultComputer) PutMeasurement(sd *storage.SessionDescription, mm *sch
 	r.mutex.Lock()
 	data, exists := r.sessions[sd.String()]
 	if !exists {
-		data = newSessionData(r.logger, r.cfg.Window)
+		data = newSessionData(r.logger, r.cfg.AveragingWindows)
 		r.sessions[sd.String()] = data
 	}
 	r.mutex.Unlock()
 
-	data.registerMeasurement(mm)
-	return nil
+	return data.registerMeasurement(mm)
 }
 
 // GetSessionMetrics extracts the most recent metrics of a particular session
@@ -47,7 +47,7 @@ func (r *defaultComputer) GetSessionMetrics(
 	r.mutex.Lock()
 	data, exists := r.sessions[sd.String()]
 	if !exists {
-		data = newSessionData(r.logger, r.cfg.Window)
+		data = newSessionData(r.logger, r.cfg.AveragingWindows)
 		r.sessions[sd.String()] = data
 	}
 	r.mutex.Unlock()
@@ -90,21 +90,22 @@ func (r *defaultComputer) populateSessionData(
 
 	// prepare new session data storage
 	r.mutex.Lock()
-	data := newSessionData(r.logger, r.cfg.Window)
+	data := newSessionData(r.logger, r.cfg.AveragingWindows)
 	r.sessions[sd.String()] = data
 	r.mutex.Unlock()
 
 	return data.getSessionMetrics(), nil
 }
 
-//sort.Slice(locations, func(i, j int) bool {
-//	// descending order
-//	return locations[i].Average.InUseBytesRate > locations[j].Average.InUseBytesRate
-//})
-
 func (r *defaultComputer) Quit() {
 	r.cancel()
 	r.wg.Wait()
+}
+
+// timeSeriesLifetime extracts retention time for time series from config
+func (r *defaultComputer) timeSeriesLifetime() time.Duration {
+	// takes greatest averaging window
+	return r.cfg.AveragingWindows[len(r.cfg.AveragingWindows)-1]
 }
 
 // NewComputer instantiates new runner

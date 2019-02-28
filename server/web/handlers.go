@@ -35,10 +35,9 @@ func (s *server) computeSessionMetrics(w http.ResponseWriter, r *http.Request, p
 	}
 
 	// sort results by InUseBytes rate, since it the most relevant indicator for memory leak
-	s.logger.Debug("sorting slice")
 	sort.Slice(result.Locations, func(i, j int) bool {
 		// descending order
-		return result.Locations[i].Rates.InUseBytes > result.Locations[j].Rates.InUseBytes
+		return result.Locations[i].Rates[0].Values.InUseBytes > result.Locations[j].Rates[0].Values.InUseBytes
 	})
 
 	// dump to JSON

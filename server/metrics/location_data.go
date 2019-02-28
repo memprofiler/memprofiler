@@ -2,6 +2,12 @@ package metrics
 
 import (
 	"reflect"
+	"sort"
+	"time"
+
+	"github.com/golang/protobuf/ptypes"
+
+	"github.com/vitalyisaev2/memprofiler/utils"
 
 	"gonum.org/v1/gonum/stat"
 
@@ -17,23 +23,34 @@ type locationData struct {
 	FreeObjects  []float64
 	InUseBytes   []float64
 	InUseObjects []float64
-	Timestamps   []float64
-	window       int
+	Timestamps   []time.Time
+	lifetime     time.Duration // equals to the longest averaging window available
 	callStack    *schema.Callstack
 }
 
 // registerMeasurement appends new measurement to the process
-func (ld *locationData) registerMeasurement(timestamp float64, mu *schema.MemoryUsage) {
+func (ld *locationData) registerMeasurement(timestamp time.Time, mu *schema.MemoryUsage) {
 
-	// shift series if the maximum capacity is achieved
-	if len(ld.AllocBytes) == ld.window {
-		ld.AllocObjects = ld.AllocObjects[:ld.window-1]
-		ld.AllocBytes = ld.AllocBytes[:ld.window-1]
-		ld.FreeObjects = ld.FreeObjects[:ld.window-1]
-		ld.FreeBytes = ld.FreeBytes[:ld.window-1]
-		ld.InUseObjects = ld.InUseObjects[:ld.window-1]
-		ld.InUseBytes = ld.InUseBytes[:ld.window-1]
-		ld.Timestamps = ld.Timestamps[:ld.window-1]
+	// check if there are outdated records
+	threshold := time.Now().Add(-1 * ld.lifetime)
+	edge := 0
+	for i, timestamp := range ld.Timestamps {
+		if timestamp.Before(threshold) {
+			edge = i
+		} else {
+			break
+		}
+	}
+
+	// shift series if data TTL is reached
+	if edge != 0 {
+		ld.AllocObjects = ld.AllocObjects[edge:]
+		ld.AllocBytes = ld.AllocBytes[edge:]
+		ld.FreeObjects = ld.FreeObjects[edge:]
+		ld.FreeBytes = ld.FreeBytes[edge:]
+		ld.InUseObjects = ld.InUseObjects[edge:]
+		ld.InUseBytes = ld.InUseBytes[edge:]
+		ld.Timestamps = ld.Timestamps[edge:]
 	}
 
 	// add required data
@@ -48,53 +65,80 @@ func (ld *locationData) registerMeasurement(timestamp float64, mu *schema.Memory
 
 // computeMetrics performs stats computations for every stored time series;
 // the timestamps are shared between all session members and stored out there
-func (ld *locationData) computeMetrics() *schema.LocationMetrics {
+func (ld *locationData) computeMetrics(spans []time.Duration) *schema.LocationMetrics {
 
-	rates := &schema.HeapConsumptionRates{}
-	ldValue := reflect.Indirect(reflect.ValueOf(ld))
-	ratesValue := reflect.Indirect(reflect.ValueOf(rates))
+	// x axis values
+	timestampFloats := timestampsToFloats(ld.Timestamps)
 
-	for i := 0; i < ldValue.NumField(); i++ {
-		ldField := ldValue.Field(i)
+	rates := make([]*schema.MemoryUtilizationRate, 0, len(spans))
 
-		fieldName := ldValue.Type().Field(i).Name
+	// compute trends for every span (or averaging window)
+	for _, span := range spans {
+		rates = append(rates, ld.computeMetricsForSpan(span, timestampFloats))
+	}
+	return &schema.LocationMetrics{Callstack: ld.callStack, Rates: rates}
+}
+
+// computeMetricsForSpan performs stats computation for a particular time span
+func (ld *locationData) computeMetricsForSpan(
+	span time.Duration,
+	timestampFloats []float64,
+) *schema.MemoryUtilizationRate {
+
+	threshold := utils.TimeToFloat64(time.Now().Add(-1 * span))
+	ix := sort.SearchFloat64s(timestampFloats, threshold)
+
+	result := &schema.MemoryUtilizationRate{
+		Values: &schema.MemoryUtilizationRate_Values{},
+		Span:   ptypes.DurationProto(span),
+	}
+
+	// The source time series are locationData's []float64 slices (called AllocBytes, AllocObjects, ...).
+	// The destination trends are MemoryUtilizationRate.Values (also called AllocBytes, AllocObjects, ...).
+	// Using the power of reflection, we walk through these two structs and compute trends one by one
+	src := reflect.Indirect(reflect.ValueOf(ld))
+	dst := reflect.Indirect(reflect.ValueOf(result.Values))
+	for i := 0; i < src.NumField(); i++ {
+
+		dataField := src.Field(i)
+		fieldName := src.Type().Field(i).Name
 
 		// estimate regression parameters for every time series
 		if fieldName != "Timestamps" &&
-			ldField.Kind() == reflect.Slice &&
-			ldField.Type().Elem().Kind() == reflect.Float64 {
-			slope := computeSlope(ld.Timestamps, ldField.Interface().([]float64))
-			ratesField := ratesValue.FieldByName(fieldName)
+			dataField.Kind() == reflect.Slice &&
+			dataField.Type().Elem().Kind() == reflect.Float64 {
+			slope := computeSlope(timestampFloats[ix:], dataField.Interface().([]float64)[ix:])
+			ratesField := dst.FieldByName(fieldName)
 			ratesField.SetFloat(slope)
 		}
 	}
 
-	return &schema.LocationMetrics{
-		Rates:     rates,
-		Callstack: ld.callStack,
+	return result
+}
+
+// timestampsToFloats converts array of timestamps to array of floats
+func timestampsToFloats(timestamps []time.Time) []float64 {
+	result := make([]float64, len(timestamps))
+	for i, timestamp := range timestamps {
+		result[i] = utils.TimeToFloat64(timestamp)
 	}
+	return result
 }
 
 // computeSlope computes the slope of linear regression equation,
 // which is equal to rate [units per second], or the first time derivative
-func computeSlope(tstamps, values []float64) float64 {
-	x := tstamps
-	if len(tstamps) != len(values) {
-		x = tstamps[len(values):]
-	}
+// TODO: is it a better way to estimate time series trend?
+//  https://en.wikipedia.org/wiki/Spearman%27s_rank_correlation_coefficient
+//  https://www.r-bloggers.com/trend-analysis-with-the-cox-stuart-test-in-r/
+func computeSlope(timestamps, values []float64) float64 {
+	x := timestamps
 	_, slope := stat.LinearRegression(x, values, nil, false)
 	return slope
 }
 
-func newLocationData(callStack *schema.Callstack, window int) *locationData {
+func newLocationData(callStack *schema.Callstack, lifetime time.Duration) *locationData {
 	return &locationData{
-		callStack:    callStack,
-		window:       window,
-		AllocBytes:   make([]float64, 0, window),
-		AllocObjects: make([]float64, 0, window),
-		FreeBytes:    make([]float64, 0, window),
-		FreeObjects:  make([]float64, 0, window),
-		InUseBytes:   make([]float64, 0, window),
-		InUseObjects: make([]float64, 0, window),
+		callStack: callStack,
+		lifetime:  lifetime,
 	}
 }

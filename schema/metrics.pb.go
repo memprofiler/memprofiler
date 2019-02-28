@@ -6,6 +6,7 @@ package schema
 import (
 	fmt "fmt"
 	proto "github.com/golang/protobuf/proto"
+	duration "github.com/golang/protobuf/ptypes/duration"
 	math "math"
 )
 
@@ -20,96 +21,146 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
-// HeapConsumptionRates is a collection of rate values for memory consumption indicators.
+// MemoryUtilizationRate is a collection of rate values for memory consumption indicators.
 // Formally, the rate (or velocity) is the first time derivative of any memory consumption indicator.
 // For Bytes rate units are bytes per second, for Objects rate units are units per second
-type HeapConsumptionRates struct {
-	AllocObjects         float64  `protobuf:"fixed64,1,opt,name=AllocObjects,proto3" json:"AllocObjects,omitempty"`
-	AllocBytes           float64  `protobuf:"fixed64,2,opt,name=AllocBytes,proto3" json:"AllocBytes,omitempty"`
-	FreeObjects          float64  `protobuf:"fixed64,3,opt,name=FreeObjects,proto3" json:"FreeObjects,omitempty"`
-	FreeBytes            float64  `protobuf:"fixed64,4,opt,name=FreeBytes,proto3" json:"FreeBytes,omitempty"`
-	InUseObjects         float64  `protobuf:"fixed64,5,opt,name=InUseObjects,proto3" json:"InUseObjects,omitempty"`
-	InUseBytes           float64  `protobuf:"fixed64,6,opt,name=InUseBytes,proto3" json:"InUseBytes,omitempty"`
+type MemoryUtilizationRate struct {
+	// span is a time span that is used to compute rates
+	Span *duration.Duration `protobuf:"bytes,1,opt,name=span,proto3" json:"span,omitempty"`
+	// values contains actual rates for a specified time span
+	Values               *MemoryUtilizationRate_Values `protobuf:"bytes,2,opt,name=values,proto3" json:"values,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
+	XXX_unrecognized     []byte                        `json:"-"`
+	XXX_sizecache        int32                         `json:"-"`
+}
+
+func (m *MemoryUtilizationRate) Reset()         { *m = MemoryUtilizationRate{} }
+func (m *MemoryUtilizationRate) String() string { return proto.CompactTextString(m) }
+func (*MemoryUtilizationRate) ProtoMessage()    {}
+func (*MemoryUtilizationRate) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6039342a2ba47b72, []int{0}
+}
+
+func (m *MemoryUtilizationRate) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MemoryUtilizationRate.Unmarshal(m, b)
+}
+func (m *MemoryUtilizationRate) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MemoryUtilizationRate.Marshal(b, m, deterministic)
+}
+func (m *MemoryUtilizationRate) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MemoryUtilizationRate.Merge(m, src)
+}
+func (m *MemoryUtilizationRate) XXX_Size() int {
+	return xxx_messageInfo_MemoryUtilizationRate.Size(m)
+}
+func (m *MemoryUtilizationRate) XXX_DiscardUnknown() {
+	xxx_messageInfo_MemoryUtilizationRate.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MemoryUtilizationRate proto.InternalMessageInfo
+
+func (m *MemoryUtilizationRate) GetSpan() *duration.Duration {
+	if m != nil {
+		return m.Span
+	}
+	return nil
+}
+
+func (m *MemoryUtilizationRate) GetValues() *MemoryUtilizationRate_Values {
+	if m != nil {
+		return m.Values
+	}
+	return nil
+}
+
+// Values is a set of rate values
+type MemoryUtilizationRate_Values struct {
+	AllocObjects         float64  `protobuf:"fixed64,1,opt,name=alloc_objects,json=allocObjects,proto3" json:"alloc_objects,omitempty"`
+	AllocBytes           float64  `protobuf:"fixed64,2,opt,name=alloc_bytes,json=allocBytes,proto3" json:"alloc_bytes,omitempty"`
+	FreeObjects          float64  `protobuf:"fixed64,3,opt,name=free_objects,json=freeObjects,proto3" json:"free_objects,omitempty"`
+	FreeBytes            float64  `protobuf:"fixed64,4,opt,name=free_bytes,json=freeBytes,proto3" json:"free_bytes,omitempty"`
+	InUseObjects         float64  `protobuf:"fixed64,5,opt,name=in_use_objects,json=inUseObjects,proto3" json:"in_use_objects,omitempty"`
+	InUseBytes           float64  `protobuf:"fixed64,6,opt,name=in_use_bytes,json=inUseBytes,proto3" json:"in_use_bytes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *HeapConsumptionRates) Reset()         { *m = HeapConsumptionRates{} }
-func (m *HeapConsumptionRates) String() string { return proto.CompactTextString(m) }
-func (*HeapConsumptionRates) ProtoMessage()    {}
-func (*HeapConsumptionRates) Descriptor() ([]byte, []int) {
-	return fileDescriptor_6039342a2ba47b72, []int{0}
+func (m *MemoryUtilizationRate_Values) Reset()         { *m = MemoryUtilizationRate_Values{} }
+func (m *MemoryUtilizationRate_Values) String() string { return proto.CompactTextString(m) }
+func (*MemoryUtilizationRate_Values) ProtoMessage()    {}
+func (*MemoryUtilizationRate_Values) Descriptor() ([]byte, []int) {
+	return fileDescriptor_6039342a2ba47b72, []int{0, 0}
 }
 
-func (m *HeapConsumptionRates) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_HeapConsumptionRates.Unmarshal(m, b)
+func (m *MemoryUtilizationRate_Values) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_MemoryUtilizationRate_Values.Unmarshal(m, b)
 }
-func (m *HeapConsumptionRates) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_HeapConsumptionRates.Marshal(b, m, deterministic)
+func (m *MemoryUtilizationRate_Values) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_MemoryUtilizationRate_Values.Marshal(b, m, deterministic)
 }
-func (m *HeapConsumptionRates) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_HeapConsumptionRates.Merge(m, src)
+func (m *MemoryUtilizationRate_Values) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MemoryUtilizationRate_Values.Merge(m, src)
 }
-func (m *HeapConsumptionRates) XXX_Size() int {
-	return xxx_messageInfo_HeapConsumptionRates.Size(m)
+func (m *MemoryUtilizationRate_Values) XXX_Size() int {
+	return xxx_messageInfo_MemoryUtilizationRate_Values.Size(m)
 }
-func (m *HeapConsumptionRates) XXX_DiscardUnknown() {
-	xxx_messageInfo_HeapConsumptionRates.DiscardUnknown(m)
+func (m *MemoryUtilizationRate_Values) XXX_DiscardUnknown() {
+	xxx_messageInfo_MemoryUtilizationRate_Values.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_HeapConsumptionRates proto.InternalMessageInfo
+var xxx_messageInfo_MemoryUtilizationRate_Values proto.InternalMessageInfo
 
-func (m *HeapConsumptionRates) GetAllocObjects() float64 {
+func (m *MemoryUtilizationRate_Values) GetAllocObjects() float64 {
 	if m != nil {
 		return m.AllocObjects
 	}
 	return 0
 }
 
-func (m *HeapConsumptionRates) GetAllocBytes() float64 {
+func (m *MemoryUtilizationRate_Values) GetAllocBytes() float64 {
 	if m != nil {
 		return m.AllocBytes
 	}
 	return 0
 }
 
-func (m *HeapConsumptionRates) GetFreeObjects() float64 {
+func (m *MemoryUtilizationRate_Values) GetFreeObjects() float64 {
 	if m != nil {
 		return m.FreeObjects
 	}
 	return 0
 }
 
-func (m *HeapConsumptionRates) GetFreeBytes() float64 {
+func (m *MemoryUtilizationRate_Values) GetFreeBytes() float64 {
 	if m != nil {
 		return m.FreeBytes
 	}
 	return 0
 }
 
-func (m *HeapConsumptionRates) GetInUseObjects() float64 {
+func (m *MemoryUtilizationRate_Values) GetInUseObjects() float64 {
 	if m != nil {
 		return m.InUseObjects
 	}
 	return 0
 }
 
-func (m *HeapConsumptionRates) GetInUseBytes() float64 {
+func (m *MemoryUtilizationRate_Values) GetInUseBytes() float64 {
 	if m != nil {
 		return m.InUseBytes
 	}
 	return 0
 }
 
-// LocationMetrics is a set of heap allocation statistics
-// that happened in a particular place in code
+// LocationMetrics is a set of memory allocation statistics
+// that happened on a particular line of source code
 type LocationMetrics struct {
-	// Rates represents heap consumption rates estimated
+	// rates represents memory consumption rates estimated
 	// for some averaging window defined by server
-	Rates *HeapConsumptionRates `protobuf:"bytes,1,opt,name=Rates,proto3" json:"Rates,omitempty"`
-	// Callstack describes location in code where the allocation occured
-	Callstack            *Callstack `protobuf:"bytes,2,opt,name=Callstack,proto3" json:"Callstack,omitempty"`
+	Rates []*MemoryUtilizationRate `protobuf:"bytes,1,rep,name=rates,proto3" json:"rates,omitempty"`
+	// callstack describes location in code where the allocation happened
+	Callstack            *Callstack `protobuf:"bytes,2,opt,name=callstack,proto3" json:"callstack,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -140,7 +191,7 @@ func (m *LocationMetrics) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_LocationMetrics proto.InternalMessageInfo
 
-func (m *LocationMetrics) GetRates() *HeapConsumptionRates {
+func (m *LocationMetrics) GetRates() []*MemoryUtilizationRate {
 	if m != nil {
 		return m.Rates
 	}
@@ -156,7 +207,7 @@ func (m *LocationMetrics) GetCallstack() *Callstack {
 
 // SessionMetrics contains list of heap allocation metrics per every location
 type SessionMetrics struct {
-	Locations            []*LocationMetrics `protobuf:"bytes,1,rep,name=Locations,proto3" json:"Locations,omitempty"`
+	Locations            []*LocationMetrics `protobuf:"bytes,1,rep,name=locations,proto3" json:"locations,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}           `json:"-"`
 	XXX_unrecognized     []byte             `json:"-"`
 	XXX_sizecache        int32              `json:"-"`
@@ -195,7 +246,8 @@ func (m *SessionMetrics) GetLocations() []*LocationMetrics {
 }
 
 func init() {
-	proto.RegisterType((*HeapConsumptionRates)(nil), "schema.HeapConsumptionRates")
+	proto.RegisterType((*MemoryUtilizationRate)(nil), "schema.MemoryUtilizationRate")
+	proto.RegisterType((*MemoryUtilizationRate_Values)(nil), "schema.MemoryUtilizationRate.Values")
 	proto.RegisterType((*LocationMetrics)(nil), "schema.LocationMetrics")
 	proto.RegisterType((*SessionMetrics)(nil), "schema.SessionMetrics")
 }
@@ -203,22 +255,28 @@ func init() {
 func init() { proto.RegisterFile("metrics.proto", fileDescriptor_6039342a2ba47b72) }
 
 var fileDescriptor_6039342a2ba47b72 = []byte{
-	// 271 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x51, 0xed, 0x4a, 0xc4, 0x30,
-	0x10, 0xa4, 0x9e, 0x57, 0xe8, 0xd6, 0x0f, 0x2e, 0x08, 0x1e, 0x72, 0xc8, 0xd1, 0x5f, 0xf7, 0xab,
-	0x42, 0xc5, 0x07, 0xd0, 0x03, 0x3f, 0x40, 0x11, 0x7a, 0xf8, 0x00, 0xb9, 0xb0, 0x62, 0x35, 0x69,
-	0x4a, 0x36, 0x0a, 0xbe, 0xac, 0xcf, 0x22, 0xd9, 0x50, 0x5b, 0xc5, 0x9f, 0x3b, 0x33, 0x99, 0x9d,
-	0xd9, 0xc0, 0xbe, 0x41, 0xef, 0x1a, 0x45, 0x65, 0xe7, 0xac, 0xb7, 0x22, 0x25, 0xf5, 0x82, 0x46,
-	0x9e, 0xcc, 0x0c, 0x9a, 0xce, 0xd9, 0xe7, 0x46, 0xa3, 0x8b, 0x54, 0xf1, 0x95, 0xc0, 0xd1, 0x2d,
-	0xca, 0x6e, 0x6d, 0x5b, 0x7a, 0x37, 0x9d, 0x6f, 0x6c, 0x5b, 0x4b, 0x8f, 0x24, 0x0a, 0xd8, 0xbb,
-	0xd4, 0xda, 0xaa, 0xc7, 0xed, 0x2b, 0x2a, 0x4f, 0xf3, 0x64, 0x99, 0xac, 0x92, 0xfa, 0x17, 0x26,
-	0x4e, 0x01, 0x78, 0xbe, 0xfa, 0xf4, 0x48, 0xf3, 0x1d, 0x56, 0x8c, 0x10, 0xb1, 0x84, 0xfc, 0xda,
-	0x21, 0xf6, 0x16, 0x13, 0x16, 0x8c, 0x21, 0xb1, 0x80, 0x2c, 0x8c, 0xd1, 0x60, 0x97, 0xf9, 0x01,
-	0x08, 0x19, 0xee, 0xda, 0x27, 0xfa, 0x31, 0x98, 0xc6, 0x0c, 0x63, 0x2c, 0x64, 0xe0, 0x39, 0x5a,
-	0xa4, 0x31, 0xc3, 0x80, 0x14, 0x1f, 0x70, 0x78, 0x6f, 0x95, 0x0c, 0xc5, 0x1e, 0xe2, 0x51, 0x44,
-	0x05, 0x53, 0xee, 0xc8, 0x9d, 0xf2, 0x6a, 0x51, 0xc6, 0xf3, 0x94, 0xff, 0xdd, 0xa1, 0x8e, 0x52,
-	0x71, 0x06, 0xd9, 0x5a, 0x6a, 0xbd, 0xf1, 0x52, 0xbd, 0x71, 0xd3, 0xbc, 0x9a, 0xf5, 0xef, 0x02,
-	0x41, 0x81, 0xa8, 0x07, 0x4d, 0x71, 0x03, 0x07, 0x1b, 0x24, 0x1a, 0xad, 0xbd, 0x80, 0xac, 0x4f,
-	0x12, 0x56, 0x4f, 0x56, 0x79, 0x75, 0xdc, 0x5b, 0xfc, 0x89, 0x58, 0x0f, 0xca, 0x6d, 0xca, 0x1f,
-	0x75, 0xfe, 0x1d, 0x00, 0x00, 0xff, 0xff, 0xd8, 0x16, 0x75, 0x56, 0xd4, 0x01, 0x00, 0x00,
+	// 354 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x91, 0x4f, 0x4f, 0xfa, 0x30,
+	0x18, 0xc7, 0x33, 0xfe, 0x2c, 0xe1, 0x19, 0xf0, 0x0b, 0x4d, 0x7e, 0x11, 0x49, 0x50, 0x44, 0x0e,
+	0x5c, 0x1c, 0x09, 0xc4, 0x9b, 0x27, 0x35, 0xf1, 0x22, 0x31, 0xa9, 0xc1, 0x2b, 0xe9, 0x66, 0xc1,
+	0x6a, 0xb7, 0x92, 0xb6, 0xd3, 0xe0, 0x2b, 0xf5, 0xe6, 0x5b, 0x31, 0x7b, 0xba, 0x81, 0x31, 0xc6,
+	0xe3, 0xbe, 0xcf, 0xa7, 0x9f, 0xe7, 0xbb, 0x16, 0x5a, 0x09, 0xb7, 0x5a, 0xc4, 0x26, 0xdc, 0x68,
+	0x65, 0x15, 0xf1, 0x4d, 0xfc, 0xc4, 0x13, 0xd6, 0xeb, 0x24, 0x3c, 0xd9, 0x68, 0xb5, 0x12, 0x92,
+	0x6b, 0x37, 0xea, 0x1d, 0xad, 0x95, 0x5a, 0x4b, 0x3e, 0xc1, 0xaf, 0x28, 0x5b, 0x4d, 0x1e, 0x33,
+	0xcd, 0xac, 0x50, 0xa9, 0x9b, 0x0f, 0x3f, 0x2b, 0xf0, 0x7f, 0xce, 0x13, 0xa5, 0xb7, 0x0b, 0x2b,
+	0xa4, 0x78, 0xc7, 0x19, 0x65, 0x96, 0x93, 0x33, 0xa8, 0x99, 0x0d, 0x4b, 0xbb, 0xde, 0xc0, 0x1b,
+	0x07, 0xd3, 0xc3, 0xd0, 0x89, 0xc2, 0x52, 0x14, 0x5e, 0x17, 0x22, 0x8a, 0x18, 0xb9, 0x00, 0xff,
+	0x95, 0xc9, 0x8c, 0x9b, 0x6e, 0x05, 0x0f, 0x8c, 0x42, 0x57, 0x2a, 0xfc, 0xd5, 0x1e, 0x3e, 0x20,
+	0x4b, 0x8b, 0x33, 0xbd, 0x0f, 0x0f, 0x7c, 0x17, 0x91, 0x53, 0x68, 0x31, 0x29, 0x55, 0xbc, 0x54,
+	0xd1, 0x33, 0x8f, 0xad, 0xc1, 0x02, 0x1e, 0x6d, 0x62, 0x78, 0xe7, 0x32, 0x72, 0x0c, 0x81, 0x83,
+	0xa2, 0xad, 0x2d, 0x56, 0x7a, 0x14, 0x30, 0xba, 0xcc, 0x13, 0x72, 0x02, 0xcd, 0x95, 0xe6, 0x7c,
+	0x27, 0xa9, 0x22, 0x11, 0xe4, 0x59, 0xe9, 0xe8, 0x03, 0x20, 0xe2, 0x14, 0x35, 0x04, 0x1a, 0x79,
+	0xe2, 0x0c, 0x23, 0x68, 0x8b, 0x74, 0x99, 0x99, 0xbd, 0xa3, 0xee, 0x8a, 0x88, 0x74, 0x61, 0x76,
+	0x92, 0x01, 0x34, 0x0b, 0xca, 0x69, 0x7c, 0xd7, 0x04, 0x19, 0xf4, 0x0c, 0xdf, 0xe0, 0xdf, 0xad,
+	0x8a, 0xf1, 0xcf, 0xe7, 0xee, 0xd5, 0xc8, 0x0c, 0xea, 0x9a, 0xe5, 0xb4, 0x37, 0xa8, 0x8e, 0x83,
+	0x69, 0xff, 0xcf, 0xab, 0xa2, 0x8e, 0x25, 0x13, 0x68, 0xc4, 0x4c, 0x4a, 0x63, 0x59, 0xfc, 0x52,
+	0xdc, 0x71, 0xa7, 0x3c, 0x78, 0x55, 0x0e, 0xe8, 0x9e, 0x19, 0xde, 0x40, 0xfb, 0x9e, 0x1b, 0xf3,
+	0x6d, 0xef, 0x39, 0x34, 0x64, 0x51, 0xa5, 0xdc, 0x7d, 0x50, 0x2a, 0x7e, 0x74, 0xa4, 0x7b, 0x32,
+	0xf2, 0xf1, 0xcd, 0x67, 0x5f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xfe, 0x9e, 0x0e, 0xf1, 0x76, 0x02,
+	0x00, 0x00,
 }

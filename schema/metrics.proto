@@ -3,30 +3,38 @@ syntax = "proto3";
 package schema;
 
 import "memprofiler.proto";
+import "google/protobuf/duration.proto";
 
-// HeapConsumptionRates is a collection of rate values for memory consumption indicators.
+// MemoryUtilizationRate is a collection of rate values for memory consumption indicators.
 // Formally, the rate (or velocity) is the first time derivative of any memory consumption indicator.
 // For Bytes rate units are bytes per second, for Objects rate units are units per second
-message HeapConsumptionRates {
-    double AllocObjects = 1;
-    double AllocBytes = 2;
-    double FreeObjects = 3;
-    double FreeBytes = 4;
-    double InUseObjects = 5;
-    double InUseBytes = 6;
+message MemoryUtilizationRate {
+    // Values is a set of rate values
+    message Values {
+        double alloc_objects = 1;
+        double alloc_bytes = 2;
+        double free_objects = 3;
+        double free_bytes = 4;
+        double in_use_objects = 5;
+        double in_use_bytes = 6;
+    }
+    // span is a time span that is used to compute rates
+    google.protobuf.Duration span = 1;
+    // values contains actual rates for a specified time span
+    Values values = 2;
 }
 
-// LocationMetrics is a set of heap allocation statistics
-// that happened in a particular place in code
+// LocationMetrics is a set of memory allocation statistics
+// that happened on a particular line of source code
 message LocationMetrics {
-    // Rates represents heap consumption rates estimated
+    // rates represents memory consumption rates estimated
     // for some averaging window defined by server
-    HeapConsumptionRates Rates = 1;
-    // Callstack describes location in code where the allocation occured
-    Callstack Callstack = 2;
+    repeated MemoryUtilizationRate rates = 1;
+    // callstack describes location in code where the allocation happened
+    Callstack callstack = 2;
 }
 
 // SessionMetrics contains list of heap allocation metrics per every location
 message SessionMetrics {
-   repeated LocationMetrics Locations = 1;
+   repeated LocationMetrics locations = 1;
 }
