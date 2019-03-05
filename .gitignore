@@ -6,5 +6,6 @@ memprofiler
 
 # coverage
 coverage.txt
+*.coverprofile
 
 .idea

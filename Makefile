@@ -20,6 +20,7 @@ run:
 	./memprofiler -c ./server/config/example.yaml
 
 test:
-	go test -v ./...
+	overalls -project=github.com/memprofiler/memprofiler -covermode=count -ignore=test,misc,vendor -concurrency=2
+	go tool cover -func=./overalls.coverprofile
 
 .PHONY: schema
