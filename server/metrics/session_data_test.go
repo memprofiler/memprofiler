@@ -12,7 +12,7 @@ import (
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"github.com/vitalyisaev2/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/schema"
 )
 
 var (

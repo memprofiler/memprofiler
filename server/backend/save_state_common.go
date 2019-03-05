@@ -1,10 +1,10 @@
-package api
+package backend
 
 import (
 	"fmt"
 
-	"github.com/vitalyisaev2/memprofiler/schema"
-	"github.com/vitalyisaev2/memprofiler/utils"
+	"github.com/memprofiler/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/utils"
 )
 
 var _ saveState = (*saveStateCommon)(nil)

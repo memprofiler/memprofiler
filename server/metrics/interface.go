@@ -3,9 +3,9 @@ package metrics
 import (
 	"context"
 
-	"github.com/vitalyisaev2/memprofiler/schema"
-	"github.com/vitalyisaev2/memprofiler/server/common"
-	"github.com/vitalyisaev2/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/server/common"
+	"github.com/memprofiler/memprofiler/server/storage"
 )
 
 // Computer performs statistical analysis for the incoming and archived data streams

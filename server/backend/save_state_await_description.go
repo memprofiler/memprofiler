@@ -1,9 +1,9 @@
-package api
+package backend
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/vitalyisaev2/memprofiler/schema"
-	"github.com/vitalyisaev2/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/server/storage"
 )
 
 var _ saveState = (*saveStateAwaitDescription)(nil)

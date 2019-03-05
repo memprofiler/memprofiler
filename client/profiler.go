@@ -12,8 +12,8 @@ import (
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
 
-	"github.com/vitalyisaev2/memprofiler/schema"
-	"github.com/vitalyisaev2/memprofiler/utils"
+	"github.com/memprofiler/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/utils"
 )
 
 // Profiler should keep working during whole application lifetime
@@ -22,7 +22,7 @@ type Profiler interface {
 }
 
 type defaultProfiler struct {
-	stream  schema.Memprofiler_SaveClient
+	stream  schema.MemprofilerBackend_SaveReportClient
 	limiter *rate.Limiter
 	cfg     *Config
 	logger  Logger
@@ -57,8 +57,8 @@ func (p *defaultProfiler) report() error {
 	p.maybeDumpMessage(mm)
 
 	// send it to server
-	msg := &schema.SaveRequest{
-		Payload: &schema.SaveRequest_Measurement{
+	msg := &schema.SaveReportRequest{
+		Payload: &schema.SaveReportRequest_Measurement{
 			Measurement: mm,
 		},
 	}
@@ -178,24 +178,24 @@ func NewProfiler(logger Logger, cfg *Config) (Profiler, error) {
 }
 
 // makeStream initializes GRPC stream
-func makeStream(ctx context.Context, cfg *Config) (schema.Memprofiler_SaveClient, error) {
+func makeStream(ctx context.Context, cfg *Config) (schema.MemprofilerBackend_SaveReportClient, error) {
 
 	// prepare GRPC client
 	conn, err := grpc.Dial(cfg.ServerEndpoint, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
-	c := schema.NewMemprofilerClient(conn)
+	c := schema.NewMemprofilerBackendClient(conn)
 
 	// open client-side streaming
-	stream, err := c.Save(ctx)
+	stream, err := c.SaveReport(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// send greeting message to server
-	msg := &schema.SaveRequest{
-		Payload: &schema.SaveRequest_ServiceDescription{
+	msg := &schema.SaveReportRequest{
+		Payload: &schema.SaveReportRequest_ServiceDescription{
 			ServiceDescription: cfg.ServiceDescription,
 		},
 	}

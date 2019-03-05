@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"github.com/vitalyisaev2/memprofiler/schema"
-	"github.com/vitalyisaev2/memprofiler/server/config"
-	"github.com/vitalyisaev2/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/server/config"
+	"github.com/memprofiler/memprofiler/server/storage"
 )
 
 var _ Computer = (*defaultComputer)(nil)

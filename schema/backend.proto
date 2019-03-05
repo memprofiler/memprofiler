@@ -4,21 +4,26 @@ package schema;
 
 import "google/protobuf/timestamp.proto";
 
-// Memprofiler is a service for tracking Go applications memory usage
-service Memprofiler {
-    rpc Save(stream SaveRequest) returns (SaveResponse) {};
+// MemprofilerBackend is a service used by Memprofiler clients embedded into target applications
+service MemprofilerBackend {
+    // SaveReport is a client-side stream used to save memory usage reports to Memprofiler server
+    rpc SaveReport (stream SaveReportRequest) returns (SaveReportResponse) {};
 };
 
-// SaveRequest - request for Save method
-message SaveRequest {
+// --------- SaveReport ---------
+
+// SaveReportRequest - request for SaveReport method
+message SaveReportRequest {
     oneof payload {
+        // service_descriptions - metadata about reporter
         ServiceDescription service_description = 1;
+        // measurement - a memory utilization report itself
         Measurement measurement = 2;
     }
 }
 
-// SaveResponse - response for Save method
-message SaveResponse {
+// SaveReportResponse - response for SaveReport method
+message SaveReportResponse {
 }
 
 // ServiceDescription describes the service whose memory stats is being tracked
@@ -67,4 +72,3 @@ message StackFrame {
     string file = 2;
     int32 line = 3;
 }
-

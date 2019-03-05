@@ -1,9 +1,9 @@
 deps:
 	go get -u -v github.com/deckarep/golang-set
-	go get -u -v github.com/julienschmidt/httprouter
 	go get -u -v github.com/sirupsen/logrus
 	go get -u -v google.golang.org/grpc
 	go get -u -v github.com/golang/protobuf/...
+	go get -u -v github.com/improbable-eng/grpc-web/go/grpcweb
 	go get -u -v golang.org/x/tools/cmd/stringer
 	go get -u -v gopkg.in/yaml.v2
 	go get -u -v gonum.org/v1/gonum/stat
@@ -14,12 +14,13 @@ generate:
 	go generate ./...
 
 build:
-	go build -o memprofiler github.com/vitalyisaev2/memprofiler/server
+	go build -o memprofiler github.com/memprofiler/memprofiler/server
 
 run:
 	./memprofiler -c ./server/config/example.yaml
 
 test:
-	go test -v ./...
+	overalls -project=github.com/memprofiler/memprofiler -covermode=count -ignore=test,misc,vendor -concurrency=2
+	go tool cover -func=./overalls.coverprofile
 
 .PHONY: schema

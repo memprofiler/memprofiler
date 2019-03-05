@@ -1,14 +1,15 @@
-package web
+package frontend
 
 import (
 	"net/http"
 	"sort"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/vitalyisaev2/memprofiler/schema"
-	"github.com/vitalyisaev2/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/server/storage"
 )
 
+// FIXME: to GRPC response
 func (s *server) computeSessionMetrics(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 
 	// parse session id

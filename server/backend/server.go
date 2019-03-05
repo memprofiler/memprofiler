@@ -1,13 +1,13 @@
-package api
+package backend
 
 import (
 	"net"
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/vitalyisaev2/memprofiler/schema"
-	"github.com/vitalyisaev2/memprofiler/server/config"
-	"github.com/vitalyisaev2/memprofiler/server/locator"
+	"github.com/memprofiler/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/server/config"
+	"github.com/memprofiler/memprofiler/server/locator"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -31,7 +31,7 @@ func (s *server) Stop() {
 	s.grpcServer.GracefulStop()
 }
 
-func (s *server) Save(stream schema.Memprofiler_SaveServer) error {
+func (s *server) SaveReport(stream schema.MemprofilerBackend_SaveReportServer) error {
 	s.logger.Debug("Started request handling")
 
 	// create object that will be responsible for handling incoming messages
@@ -48,9 +48,9 @@ func (s *server) Save(stream schema.Memprofiler_SaveServer) error {
 			return err
 		}
 		switch request.Payload.(type) {
-		case *schema.SaveRequest_ServiceDescription:
+		case *schema.SaveReportRequest_ServiceDescription:
 			err = protocol.addDescription(request.GetServiceDescription())
-		case *schema.SaveRequest_Measurement:
+		case *schema.SaveReportRequest_Measurement:
 			err = protocol.addMeasurement(request.GetMeasurement())
 		}
 		if err != nil {
@@ -81,7 +81,7 @@ func NewServer(
 	}
 
 	s.grpcServer = grpc.NewServer()
-	schema.RegisterMemprofilerServer(s.grpcServer, s)
+	schema.RegisterMemprofilerBackendServer(s.grpcServer, s)
 	reflection.Register(s.grpcServer)
 
 	return s, nil

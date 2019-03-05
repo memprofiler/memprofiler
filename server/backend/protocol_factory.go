@@ -1,6 +1,6 @@
-package api
+package backend
 
-import "github.com/vitalyisaev2/memprofiler/server/locator"
+import "github.com/memprofiler/memprofiler/server/locator"
 
 type protocolFactory interface {
 	save() saveProtocol

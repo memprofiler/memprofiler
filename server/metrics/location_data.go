@@ -7,11 +7,11 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 
-	"github.com/vitalyisaev2/memprofiler/utils"
+	"github.com/memprofiler/memprofiler/utils"
 
 	"gonum.org/v1/gonum/stat"
 
-	"github.com/vitalyisaev2/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/schema"
 )
 
 // locationData contains collection of time series with different heap metrics;
