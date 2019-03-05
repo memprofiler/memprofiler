@@ -23,8 +23,8 @@ type saveState interface {
 type saveProtocol interface {
 	saveState
 	setState(saveState)
-	setSessionDescription(*storage.SessionDescription) error
-	getSessionDescription() *storage.SessionDescription
+	setSessionDescription(*schema.SessionDescription) error
+	getSessionDescription() *schema.SessionDescription
 	getStorage() storage.Storage
 	getComputer() metrics.Computer
 	setLogger(logrus.FieldLogger)
@@ -44,7 +44,7 @@ const (
 // defaultSaveProtocol is a default implementation of saveProtocol
 type defaultSaveProtocol struct {
 	saveState
-	sessionDescription *storage.SessionDescription
+	sessionDescription *schema.SessionDescription
 	dataSaver          storage.DataSaver
 	storage            storage.Storage
 	computer           metrics.Computer
@@ -57,7 +57,7 @@ func (p *defaultSaveProtocol) setState(instance saveState) {
 	p.saveState = instance
 }
 
-func (p *defaultSaveProtocol) setSessionDescription(desc *storage.SessionDescription) error {
+func (p *defaultSaveProtocol) setSessionDescription(desc *schema.SessionDescription) error {
 	if p.sessionDescription != nil {
 		return fmt.Errorf("session description is already set")
 	}
@@ -65,7 +65,7 @@ func (p *defaultSaveProtocol) setSessionDescription(desc *storage.SessionDescrip
 	return nil
 }
 
-func (p *defaultSaveProtocol) getSessionDescription() *storage.SessionDescription {
+func (p *defaultSaveProtocol) getSessionDescription() *schema.SessionDescription {
 	return p.sessionDescription
 }
 

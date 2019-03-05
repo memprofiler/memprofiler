@@ -12,9 +12,11 @@ import (
 // which computes session metrics in a background
 type MetricsConfig struct {
 	// AveragingWindowsString defines which parts of time series will
-	// be used for session metrics computation
-	AveragingWindowsString []string        `yaml:"averaging_windows"`
-	AveragingWindows       []time.Duration `yaml:"-"`
+	// be used for session metrics computation. Client may want to have
+	// trend values for last 5 sec, 1 min and 1 hour, for example.
+	AveragingWindowsString []string `yaml:"averaging_windows"`
+	// AveragingWindow is a sorted list of averaging window values
+	AveragingWindows []time.Duration `yaml:"-"`
 }
 
 // Verify checks config

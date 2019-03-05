@@ -1,6 +1,7 @@
 package filesystem
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 
@@ -16,10 +17,10 @@ type sessionStorage interface {
 
 var _ sessionStorage = (*defaultSessionStorage)(nil)
 
-// defaultSessionStorage stores SessionID values
+// defaultSessionStorage stores SessionID values in memory
 type defaultSessionStorage struct {
 	mutex sync.RWMutex
-	// ServiceID <-> InstanceID <-> []SessionID
+	// ServiceType <-> ServiceInstance <-> []SessionID
 	values map[string]map[string][]storage.SessionID
 }
 
@@ -28,16 +29,16 @@ func (ss *defaultSessionStorage) inc(desc *schema.ServiceDescription) storage.Se
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 
-	instances, exists := ss.values[desc.GetType()]
+	instances, exists := ss.values[desc.GetServiceType()]
 	if !exists {
 		instances = map[string][]storage.SessionID{}
-		ss.values[desc.GetType()] = instances
+		ss.values[desc.GetServiceInstance()] = instances
 	}
 
-	sessionIDs, exists := instances[desc.GetInstance()]
+	sessionIDs, exists := instances[desc.GetServiceInstance()]
 	if !exists {
 		value := storage.SessionID(0)
-		instances[desc.GetInstance()] = []storage.SessionID{value}
+		instances[desc.GetServiceInstance()] = []storage.SessionID{value}
 		return value
 	}
 
@@ -54,15 +55,15 @@ func (ss *defaultSessionStorage) register(
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 
-	instances, exists := ss.values[desc.GetType()]
+	instances, exists := ss.values[desc.GetServiceType()]
 	if !exists {
 		instances = map[string][]storage.SessionID{}
-		ss.values[desc.GetType()] = instances
+		ss.values[desc.GetServiceType()] = instances
 	}
 
-	sessionIDs, exists := instances[desc.GetInstance()]
+	sessionIDs, exists := instances[desc.GetServiceInstance()]
 	if !exists {
-		instances[desc.GetInstance()] = []storage.SessionID{value}
+		instances[desc.GetServiceInstance()] = []storage.SessionID{value}
 		return
 	}
 
@@ -83,40 +84,47 @@ func (ss *defaultSessionStorage) Services() []string {
 	return results
 }
 
-func (ss *defaultSessionStorage) Instances(serviceType string) []string {
+func (ss *defaultSessionStorage) Instances(serviceType string) ([]*schema.ServiceDescription, error) {
 	ss.mutex.RLock()
 	defer ss.mutex.RUnlock()
 
 	instances, exists := ss.values[serviceType]
 	if !exists {
-		return nil
+		return nil, fmt.Errorf("no services of type '%s' are registered", serviceType)
 	}
-	results := make([]string, len(instances))
-	i := 0
+	results := make([]*schema.ServiceDescription, 0, len(instances))
 	for instance := range instances {
-		results[i] = instance
-		i++
+		results = append(results, &schema.ServiceDescription{ServiceType: serviceType, ServiceInstance: instance})
 	}
-	return results
+	return results, nil
 }
 
-func (ss *defaultSessionStorage) Sessions(desc *schema.ServiceDescription) []storage.SessionID {
+func (ss *defaultSessionStorage) Sessions(desc *schema.ServiceDescription) ([]*schema.Session, error) {
 	ss.mutex.RLock()
 	defer ss.mutex.RUnlock()
 
-	instances, exists := ss.values[desc.GetType()]
+	instances, exists := ss.values[desc.GetServiceType()]
 	if !exists {
-		return nil
+		return nil, fmt.Errorf("no services of type '%s' are registered", desc.GetServiceType())
 	}
 
-	sessionIDs, exists := instances[desc.GetInstance()]
+	sessionIDs, exists := instances[desc.GetServiceInstance()]
 	if !exists {
-		return nil
+		return nil, fmt.Errorf("no sessions for service '%s' of type '%s' are registered", desc.GetServiceInstance(), desc.GetServiceType())
 	}
 
-	result := make([]storage.SessionID, len(sessionIDs))
-	copy(result, sessionIDs)
-	return result
+	results := make([]*schema.Session, 0, len(sessionIDs))
+	for _, sessionID := range sessionIDs {
+		session := &schema.Session{
+			Description: &schema.SessionDescription{
+				ServiceType:     desc.GetServiceType(),
+				ServiceInstance: desc.GetServiceInstance(),
+				SessionId:       sessionID,
+			},
+		}
+		results = append(results, session)
+	}
+	return results, nil
 }
 
 func newSessionStorage() sessionStorage {

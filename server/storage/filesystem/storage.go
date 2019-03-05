@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/sirupsen/logrus"
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/config"
 	"github.com/memprofiler/memprofiler/server/storage"
+	"github.com/sirupsen/logrus"
 )
 
 var _ storage.Storage = (*defaultStorage)(nil)
@@ -36,7 +36,7 @@ const (
 	filePermissions = 0644
 )
 
-func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.DataSaver, error) {
+func (s *defaultStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (storage.DataSaver, error) {
 
 	select {
 	case <-s.ctx.Done():
@@ -46,14 +46,15 @@ func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.
 	}
 
 	// get new sessionID for this service instance
-	sessionID := s.sessionStorage.inc(desc)
+	sessionID := s.sessionStorage.inc(serviceDesc)
 
 	// obtain directory to store data coming from a particular service instance
-	sd := &storage.SessionDescription{
-		ServiceDescription: desc,
-		SessionID:          sessionID,
+	sessionDesc := &schema.SessionDescription{
+		ServiceType:     serviceDesc.GetServiceType(),
+		ServiceInstance: serviceDesc.GetServiceInstance(),
+		SessionId:       sessionID,
 	}
-	subdirPath := s.makeSubdirPath(sd)
+	subdirPath := s.makeSubdirPath(sessionDesc)
 	if _, err := os.Stat(subdirPath); err != nil {
 
 		if !os.IsNotExist(err) {
@@ -66,10 +67,10 @@ func (s *defaultStorage) NewDataSaver(desc *schema.ServiceDescription) (storage.
 		}
 	}
 
-	return newDataSaver(subdirPath, desc, sessionID, s.cfg, &s.wg, s.codec)
+	return newDataSaver(subdirPath, sessionDesc, s.cfg, &s.wg, s.codec)
 }
 
-func (s *defaultStorage) NewDataLoader(sd *storage.SessionDescription) (storage.DataLoader, error) {
+func (s *defaultStorage) NewDataLoader(sd *schema.SessionDescription) (storage.DataLoader, error) {
 
 	select {
 	case <-s.ctx.Done():
@@ -82,12 +83,12 @@ func (s *defaultStorage) NewDataLoader(sd *storage.SessionDescription) (storage.
 }
 
 // makeSubdirPath builds a path for a filesystem direcory with instance data
-func (s *defaultStorage) makeSubdirPath(sd *storage.SessionDescription) string {
+func (s *defaultStorage) makeSubdirPath(sessionDescription *schema.SessionDescription) string {
 	return filepath.Join(
 		s.cfg.DataDir,
-		sd.ServiceDescription.GetType(),
-		sd.ServiceDescription.GetInstance(),
-		sd.SessionID.String(),
+		sessionDescription.GetServiceType(),
+		sessionDescription.GetServiceInstance(),
+		storage.SessionIDToString(sessionDescription.GetSessionId()),
 	)
 }
 
@@ -113,7 +114,10 @@ func (s *defaultStorage) populateSessionStorage() error {
 				return err
 			}
 			for _, s2 := range subdirs2 {
-				desc := &schema.ServiceDescription{Type: s1.Name(), Instance: s2.Name()}
+				serviceDesc := &schema.ServiceDescription{
+					ServiceType:     s1.Name(),
+					ServiceInstance: s2.Name(),
+				}
 
 				s2Path := filepath.Join(s1Path, s2.Name())
 				subdirs3, err := ioutil.ReadDir(s2Path)
@@ -126,7 +130,7 @@ func (s *defaultStorage) populateSessionStorage() error {
 						if err != nil {
 							return err
 						}
-						s.sessionStorage.register(desc, sessionID)
+						s.sessionStorage.register(serviceDesc, sessionID)
 					}
 				}
 			}
