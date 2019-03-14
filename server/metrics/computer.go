@@ -84,8 +84,6 @@ func (r *defaultComputer) SessionRecentMetrics(
 }
 
 func (r *defaultComputer) SessionSubscribe(ctx context.Context, sd *schema.SessionDescription) (Subscription, error) {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
 
 	sessionID := shortSessionIdentifier(sd)
 
