@@ -3,13 +3,13 @@ package frontend
 import (
 	"context"
 	"net/http"
+	"sort"
+	"time"
 
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
-
+	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/grpclog"
-
-	"time"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/common"
@@ -17,7 +17,6 @@ import (
 	"github.com/memprofiler/memprofiler/server/locator"
 	"github.com/memprofiler/memprofiler/server/metrics"
 	"github.com/memprofiler/memprofiler/server/storage"
-	"github.com/sirupsen/logrus"
 )
 
 var _ schema.MemprofilerFrontendServer = (*server)(nil)
@@ -31,21 +30,57 @@ type server struct {
 }
 
 func (s *server) GetServices(ctx context.Context, request *schema.GetServicesRequest) (*schema.GetServicesResponse, error) {
-	return &schema.GetServicesResponse{ServiceKinds: s.storage.Services()}, nil
+	return &schema.GetServicesResponse{ServiceTypes: s.storage.Services()}, nil
 }
 
 func (s *server) GetInstances(ctx context.Context, request *schema.GetInstancesRequest) (*schema.GetInstancesResponse, error) {
-	return &schema.GetInstancesResponse{
-		ServiceInstances: s.storage.Instances(request.GetServiceKind()),
-	}, nil
+	instances, err := s.storage.Instances(request.GetServiceType())
+	if err != nil {
+		// TODO: think about google.golang.org/grpc/status
+		return nil, err
+	}
+	return &schema.GetInstancesResponse{ServiceInstances: instances}, nil
 }
 
 func (s *server) GetSessions(ctx context.Context, request *schema.GetSessionsRequest) (*schema.GetSessionsResponse, error) {
-	panic("implement me")
+	sessions, err := s.storage.Sessions(request.GetServiceDescription())
+	if err != nil {
+		// TODO: think about google.golang.org/grpc/status
+		return nil, err
+	}
+	return &schema.GetSessionsResponse{Sessions: sessions}, nil
 }
 
-func (s *server) SubscribeForSession(ctx *schema.SubscribeForSessionRequest, request schema.MemprofilerFrontend_SubscribeForSessionServer) error {
-	panic("implement me")
+func (s *server) SubscribeForSession(
+	request *schema.SubscribeForSessionRequest,
+	stream schema.MemprofilerFrontend_SubscribeForSessionServer) error {
+
+	// make subscription for a requested service
+	subscription, err := s.computer.SessionSubscribe(stream.Context(), request.GetSessionDescription())
+	if err != nil {
+		return err
+	}
+
+	// push session metrics to the client
+	for {
+		select {
+		case msg, ok := <-subscription.Updates():
+			if !ok {
+				// session terminated by a service
+				return nil
+			}
+			// sort trend values by InUseBytes rate, since it the most relevant indicator for memory leak
+			sort.Slice(msg.Locations, func(i, j int) bool {
+				// descending order
+				return msg.Locations[i].Rates[0].Values.InUseBytes > msg.Locations[j].Rates[0].Values.InUseBytes
+			})
+			if err := stream.Send(msg); err != nil {
+				return err
+			}
+		case <-stream.Context().Done():
+			return nil
+		}
+	}
 }
 
 // Start runs HTTP API

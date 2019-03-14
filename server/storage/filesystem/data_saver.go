@@ -16,11 +16,11 @@ var delimiter = []byte{10} // '\n'
 
 // defaultDataSaver puts records to a file sequentially
 type defaultDataSaver struct {
-	codec              codec
-	fd                 *os.File
-	sessionDescription *storage.SessionDescription
-	cfg                *config.FilesystemStorageConfig
-	wg                 *sync.WaitGroup
+	codec       codec
+	fd          *os.File
+	sessionDesc *schema.SessionDescription
+	cfg         *config.FilesystemStorageConfig
+	wg          *sync.WaitGroup
 }
 
 func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
@@ -50,12 +50,11 @@ func (s *defaultDataSaver) Close() error {
 	return s.fd.Close()
 }
 
-func (s *defaultDataSaver) SessionID() storage.SessionID { return s.sessionDescription.SessionID }
+func (s *defaultDataSaver) SessionID() storage.SessionID { return s.sessionDesc.GetSessionId() }
 
 func newDataSaver(
 	subdirPath string,
-	serviceDescription *schema.ServiceDescription,
-	sessionID storage.SessionID,
+	sessionDesc *schema.SessionDescription,
 	cfg *config.FilesystemStorageConfig,
 	wg *sync.WaitGroup,
 	codec codec,
@@ -69,14 +68,11 @@ func newDataSaver(
 	}
 
 	saver := &defaultDataSaver{
-		fd:    fd,
-		codec: codec,
-		sessionDescription: &storage.SessionDescription{
-			ServiceDescription: serviceDescription,
-			SessionID:          sessionID,
-		},
-		cfg: cfg,
-		wg:  wg,
+		fd:          fd,
+		codec:       codec,
+		sessionDesc: sessionDesc,
+		cfg:         cfg,
+		wg:          wg,
 	}
 
 	return saver, nil

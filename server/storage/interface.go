@@ -4,8 +4,6 @@ import (
 	"context"
 	"io"
 
-	"fmt"
-
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/common"
 )
@@ -20,14 +18,14 @@ type Storage interface {
 // DataStorage provides interface for storing and loading service measurements
 type DataStorage interface {
 	NewDataSaver(*schema.ServiceDescription) (DataSaver, error)
-	NewDataLoader(sd *SessionDescription) (DataLoader, error)
+	NewDataLoader(*schema.SessionDescription) (DataLoader, error)
 }
 
 // MetadataStorage stores metadata about service measurements
 type MetadataStorage interface {
 	Services() []string
-	Instances(string) []string
-	Sessions(*schema.ServiceDescription) []SessionID
+	Instances(string) ([]*schema.ServiceDescription, error)
+	Sessions(*schema.ServiceDescription) ([]*schema.Session, error)
 }
 
 // DataSaver is responsible for saving service instance data into the storage
@@ -50,19 +48,4 @@ type DataLoader interface {
 type LoadResult struct {
 	Measurement *schema.Measurement
 	Err         error
-}
-
-// SessionDescription helps to identify streaming session of a particular service instance
-type SessionDescription struct {
-	ServiceDescription *schema.ServiceDescription
-	SessionID          SessionID
-}
-
-func (sd SessionDescription) String() string {
-	return fmt.Sprintf(
-		"%s::%s::%d",
-		sd.ServiceDescription.Type,
-		sd.ServiceDescription.Instance,
-		sd.SessionID,
-	)
 }

@@ -8,9 +8,10 @@ import (
 
 // SessionID is a unique identifier for a measurement streaming session;
 // sessions are ordered by this value
-type SessionID uint32
+type SessionID = uint32
 
-func (id SessionID) String() string {
+// SessionIDToString ...
+func SessionIDToString(id SessionID) string {
 	return fmt.Sprintf("%010d", id)
 }
 

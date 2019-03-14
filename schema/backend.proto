@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package schema;
 
+import "common.proto";
 import "google/protobuf/timestamp.proto";
 
 // MemprofilerBackend is a service used by Memprofiler clients embedded into target applications
@@ -24,14 +25,6 @@ message SaveReportRequest {
 
 // SaveReportResponse - response for SaveReport method
 message SaveReportResponse {
-}
-
-// ServiceDescription describes the service whose memory stats is being tracked
-message ServiceDescription {
-    // type - general service description
-    string type = 1;
-    // instance - description of a particular service instance
-    string instance = 2;
 }
 
 // Measurement contains instantaneous memory usage stats

@@ -10,9 +10,9 @@ import (
 
 	"github.com/deckarep/golang-set"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/sirupsen/logrus"
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
+	"github.com/sirupsen/logrus"
 )
 
 // sessionData contains the most recent data of the particular session;
@@ -22,8 +22,8 @@ type sessionData struct {
 	locations        map[string]*locationData // per-location stats (stackID <-> locationData)
 	lifetime         time.Duration            // the retention period for time series data
 	sessionMetrics   *schema.SessionMetrics   // latest available session metrics (potentially outdated)
-	averagingWindows []time.Duration
-	outdated         bool // if metrics should be recomputed by demand
+	averagingWindows []time.Duration          // list of time spans used to compute trends
+	outdated         bool                     // if metrics should be recomputed by demand
 	logger           logrus.FieldLogger
 }
 
@@ -112,7 +112,7 @@ func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 
 var emptyMemoryUsage = &schema.MemoryUsage{}
 
-// getSessionMetrics returns sessionMetrics in a lazy manner
+// getSessionMetrics returns trend values in a lazy manner
 func (sd *sessionData) getSessionMetrics() *schema.SessionMetrics {
 	sd.mutex.Lock()
 	defer sd.mutex.Unlock()

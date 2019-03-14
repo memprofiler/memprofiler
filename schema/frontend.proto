@@ -2,9 +2,9 @@ syntax = "proto3";
 
 package schema;
 
+import "common.proto";
 import "backend.proto";
 import "google/protobuf/duration.proto";
-import "google/protobuf/timestamp.proto";
 
 // MemprofilerFrontend - API for web-clients
 service MemprofilerFrontend {
@@ -26,44 +26,35 @@ message GetServicesRequest {
 
 // GetServicesResponse is a response body for GetServices method
 message GetServicesResponse {
-    // service_kinds - services that ever pushed data to this memprofiler
-    repeated string service_kinds = 1;
+    // service_types - services that ever pushed data to this memprofiler
+    repeated string service_types = 1;
 }
 
 // -------- GetInstances --------
 
 // GetInstancesRequest is a request body for GetInstances method
 message GetInstancesRequest {
-    // service_kind - identifier for a group of similar services
-    string service_kind = 1;
+    // service_type - identifier for a group of similar services
+    string service_type = 1;
 }
 
 // GetInstancesResponse is a response body for GetInstances method
 message GetInstancesResponse {
-    // service_instances - list of instances of a particular kind of services
-    repeated string service_instances = 1;
+    // service_instances - list of a particular kind of services instances
+    repeated ServiceDescription service_instances = 1;
 }
 
 // -------- GetSessions --------
 
 // GetSessionsRequest is a request body for GetSessions method
 message GetSessionsRequest {
-    // service_kind - identifier for a group of similar services
-    string service_kind = 1;
-    // service_instance - unique identifier for a service instance (within services of one kind)
-    string service_instance = 2;
+    // service_description - service instance information
+    ServiceDescription service_description = 1;
 }
 
 // GetSessionsResponse is a response body for GetSessions method
 message GetSessionsResponse {
-    message Session {
-        // id - unique identifier of session (within a single service instance)
-        string id = 1;
-        // started_at - time when session has started (UTC)
-        google.protobuf.Timestamp started_at = 2;
-        // finished_at - time when session has stopped (UTC), may be empty if session is still alive
-        google.protobuf.Timestamp finished_at = 3;
-    }
+    // sessions is a list of  information about available sessions
     repeated Session sessions = 1;
 }
 
@@ -71,12 +62,7 @@ message GetSessionsResponse {
 
 // SubscribeForSessionRequest is a request body for SubscribeForSession request
 message SubscribeForSessionRequest {
-    // service_kind - identifier for a group of similar services
-    string service_kind = 1;
-    // service_instance - unique identifier for a service instance (within services of one kind)
-    string service_instance = 2;
-    // session_id - unique identifier of session (within a single service instance)
-    string session_id = 3;
+    SessionDescription session_description = 1;
 }
 
 

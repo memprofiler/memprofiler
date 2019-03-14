@@ -9,14 +9,14 @@ import (
 
 	"path/filepath"
 
-	"github.com/sirupsen/logrus"
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
+	"github.com/sirupsen/logrus"
 )
 
 type defaultDataLoader struct {
 	codec  codec
-	sd     *storage.SessionDescription
+	sd     *schema.SessionDescription
 	fd     *os.File
 	logger logrus.FieldLogger
 	wg     *sync.WaitGroup
@@ -65,7 +65,7 @@ func (l *defaultDataLoader) Close() error {
 
 func newDataLoader(
 	subdirPath string,
-	sd *storage.SessionDescription,
+	sessionDesc *schema.SessionDescription,
 	codec codec,
 	logger logrus.FieldLogger,
 	wg *sync.WaitGroup,
@@ -79,14 +79,14 @@ func newDataLoader(
 	}
 
 	contextLogger := logger.WithFields(logrus.Fields{
-		"type":               sd.ServiceDescription.GetType(),
-		"instance":           sd.ServiceDescription.GetInstance(),
-		"sessionDescription": sd.SessionID,
-		"measurement":        filename,
+		"type":        sessionDesc.GetServiceType(),
+		"instance":    sessionDesc.GetServiceInstance(),
+		"sessionDesc": storage.SessionIDToString(sessionDesc.GetSessionId()),
+		"measurement": filename,
 	})
 
 	loader := &defaultDataLoader{
-		sd:     sd,
+		sd:     sessionDesc,
 		fd:     fd,
 		codec:  codec,
 		logger: contextLogger,

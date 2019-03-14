@@ -10,9 +10,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/config"
-	"github.com/memprofiler/memprofiler/server/storage"
 )
 
 // simple integration test for file-based storage
@@ -42,8 +42,8 @@ func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
 
 	// write some measurements
 	serviceDesc := &schema.ServiceDescription{
-		Type:     "database",
-		Instance: "localhost:8080",
+		ServiceType:     "database",
+		ServiceInstance: "localhost:8080",
 	}
 	saver, err := s.NewDataSaver(serviceDesc)
 	assert.NoError(t, err)
@@ -84,9 +84,10 @@ func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
 	assert.NoError(t, err)
 
 	// try to load data just written
-	sessionDesc := &storage.SessionDescription{
-		ServiceDescription: serviceDesc,
-		SessionID:          saver.SessionID(),
+	sessionDesc := &schema.SessionDescription{
+		ServiceType:     serviceDesc.GetServiceType(),
+		ServiceInstance: serviceDesc.GetServiceInstance(),
+		SessionId:       saver.SessionID(),
 	}
 	loader, err := s.NewDataLoader(sessionDesc)
 	assert.NotNil(t, loader)
