@@ -10,7 +10,7 @@ deps:
 	go get -u -v google.golang.org/grpc
 	go get -u -v gopkg.in/yaml.v2
 	# tools
-	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b "$HOME"/go/bin v1.15.0
+	go get -u -v github.com/golangci/golangci-lint/cmd/golangci-lint
 
 generate:
 	protoc -I schema schema/*.proto  --go_out=plugins=grpc:schema
