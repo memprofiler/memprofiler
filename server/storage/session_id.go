@@ -27,5 +27,5 @@ func SessionIDFromString(s string) (SessionID, error) {
 		return SessionID(0), err
 	}
 
-	return SessionID(uint32(i)), nil
+	return SessionID(i), nil
 }

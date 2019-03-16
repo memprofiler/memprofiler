@@ -110,7 +110,9 @@ func (ss *defaultSessionStorage) Sessions(desc *schema.ServiceDescription) ([]*s
 
 	sessionIDs, exists := instances[desc.GetServiceInstance()]
 	if !exists {
-		return nil, fmt.Errorf("no sessions for service '%s' of type '%s' are registered", desc.GetServiceInstance(), desc.GetServiceType())
+		return nil, fmt.Errorf(
+			"no sessions for service '%s' of type '%s' are registered",
+			desc.GetServiceInstance(), desc.GetServiceType())
 	}
 
 	results := make([]*schema.Session, 0, len(sessionIDs))

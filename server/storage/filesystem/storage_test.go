@@ -97,7 +97,7 @@ func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
 	assert.NotNil(t, outChan)
 	assert.NoError(t, err)
 
-	var output []*schema.Measurement
+	output := make([]*schema.Measurement, 0, 2)
 	for result := range outChan {
 		assert.NotNil(t, result.Measurement)
 		if !assert.NoError(t, result.Err) {

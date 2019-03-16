@@ -24,6 +24,7 @@ func (c *defaultContainer) grow(delta int) error {
 	if target < 0 {
 		return fmt.Errorf("target value is below zero (curr: %d, delta: %d)", len(c.array), delta)
 	}
+	c.logger.WithFields(logrus.Fields{"size": len(c.array), "delta": delta}).Debug("Growing memory")
 	c.array = make([]int, target)
 	return nil
 }

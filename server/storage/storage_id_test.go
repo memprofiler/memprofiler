@@ -7,12 +7,11 @@ import (
 )
 
 func TestSessionID_String(t *testing.T) {
-	var id SessionID
-	id = 0
+	id := SessionID(0)
 	assert.Equal(t, "0000000000", SessionIDToString(id))
-	id = 1
+	id = SessionID(1)
 	assert.Equal(t, "0000000001", SessionIDToString(id))
-	id = 100
+	id = SessionID(100)
 	assert.Equal(t, "0000000100", SessionIDToString(id))
 }
 

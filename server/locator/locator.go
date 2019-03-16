@@ -2,10 +2,13 @@ package locator
 
 import (
 	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc/grpclog"
+
 	"github.com/memprofiler/memprofiler/server/config"
 	"github.com/memprofiler/memprofiler/server/metrics"
 	"github.com/memprofiler/memprofiler/server/storage"
 	"github.com/memprofiler/memprofiler/server/storage/filesystem"
+	"github.com/memprofiler/memprofiler/utils"
 )
 
 // Locator stores various server subsystems
@@ -30,6 +33,9 @@ func NewLocator(cfg *config.Config) (*Locator, error) {
 
 	// 1. run logger
 	l.Logger = newLogger(cfg.Logging)
+
+	// set global GRPC logger
+	grpclog.SetLoggerV2(utils.LogrusToGRPCLogger(l.Logger)) // FIXME: replace to V2
 
 	// 2. run storage
 	l.Logger.Debug("Starting storage")

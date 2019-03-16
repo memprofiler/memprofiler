@@ -24,7 +24,7 @@ run:
 	./memprofiler -c ./server/config/example.yaml
 
 lint:
-	golangci-lint run ./...
+	golangci-lint run --enable-all ./...
 
 test:
 	overalls -project=github.com/memprofiler/memprofiler -covermode=count -ignore=test,misc,vendor -concurrency=2

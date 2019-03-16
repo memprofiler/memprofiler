@@ -93,7 +93,7 @@ func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 			stacks[cs.Id] = location
 		}
 
-		utils.UpdateMemoryUsage(location.MemoryUsage, &record)
+		utils.UpdateMemoryUsage(location.MemoryUsage, record)
 	}
 
 	mm := &schema.Measurement{

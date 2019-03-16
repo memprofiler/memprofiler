@@ -4,10 +4,9 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/memprofiler/memprofiler/client"
-	"github.com/memprofiler/memprofiler/server/config"
+	"gopkg.in/yaml.v2"
 
-	yaml "gopkg.in/yaml.v2"
+	"github.com/memprofiler/memprofiler/client"
 )
 
 // Config is a configuration for utility application that provides
@@ -45,13 +44,4 @@ func FromYAMLFile(path string) (*Config, error) {
 		return nil, err
 	}
 	return &c, nil
-}
-
-// ToYAMLFile dumps config to YAML formatted file
-func ToYAMLFile(cfg *config.Config, path string) error {
-	data, err := yaml.Marshal(cfg)
-	if err != nil {
-		return err
-	}
-	return ioutil.WriteFile(path, data, 0644)
 }

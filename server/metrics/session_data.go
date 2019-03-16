@@ -1,18 +1,17 @@
 package metrics
 
 import (
+	"context"
 	"runtime"
+	"sync"
 	"time"
 
-	"sync"
-
-	"context"
-
-	"github.com/deckarep/golang-set"
+	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/sirupsen/logrus"
+
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
-	"github.com/sirupsen/logrus"
 )
 
 // sessionData contains the most recent data of the particular session;
@@ -45,10 +44,8 @@ LOOP:
 			}
 			if result.Err != nil {
 				sd.logger.WithError(result.Err).Error("failed to get result from loader")
-			} else {
-				if err := sd.appendMeasurement(result.Measurement); err != nil {
-					return err
-				}
+			} else if err := sd.appendMeasurement(result.Measurement); err != nil {
+				return err
 			}
 		case <-ctx.Done():
 			return ctx.Err()
@@ -102,15 +99,13 @@ func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 	// so it's necessary to put zeroes for this location at the current timestamp
 	for _, stackID := range sessionLocations.Difference(mmLocations).ToSlice() {
 		sdl := sd.locations[stackID.(string)]
-		sdl.registerMeasurement(timestamp, emptyMemoryUsage)
+		sdl.registerMeasurement(timestamp, nil)
 	}
 
 	// mark existing sessionMetrics as outdated
 	sd.outdated = true
 	return nil
 }
-
-var emptyMemoryUsage = &schema.MemoryUsage{}
 
 // getSessionMetrics returns trend values in a lazy manner
 func (sd *sessionData) getSessionMetrics() *schema.SessionMetrics {

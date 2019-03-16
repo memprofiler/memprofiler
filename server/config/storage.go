@@ -18,7 +18,7 @@ func (c *StorageConfig) Verify() error {
 
 // FilesystemStorageConfig contains settings of Filesystem-based storage
 type FilesystemStorageConfig struct {
-	// DataDir containes path to root directory to keep measurement data
+	// DataDir contains path to root directory to keep measurement data
 	DataDir string `yaml:"data_dir"`
 	// SyncWrite enables fsync after every write
 	SyncWrite bool `yaml:"sync_write"`

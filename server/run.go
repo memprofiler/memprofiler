@@ -6,11 +6,12 @@ import (
 	"syscall"
 
 	"github.com/sirupsen/logrus"
+
 	"github.com/memprofiler/memprofiler/server/backend"
 	"github.com/memprofiler/memprofiler/server/common"
 	"github.com/memprofiler/memprofiler/server/config"
-	"github.com/memprofiler/memprofiler/server/locator"
 	"github.com/memprofiler/memprofiler/server/frontend"
+	"github.com/memprofiler/memprofiler/server/locator"
 )
 
 func run(cfg *config.Config) error {

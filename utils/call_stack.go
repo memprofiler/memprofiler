@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"crypto/md5"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"runtime"
 	"strings"
@@ -11,7 +11,7 @@ import (
 )
 
 // UpdateMemoryUsage updates MemoryUsage fields with values obtained from runtime
-func UpdateMemoryUsage(mu *schema.MemoryUsage, r *runtime.MemProfileRecord) {
+func UpdateMemoryUsage(mu *schema.MemoryUsage, r runtime.MemProfileRecord) {
 	mu.AllocObjects += r.AllocObjects
 	mu.AllocBytes += r.AllocBytes
 	mu.FreeObjects += r.FreeObjects
@@ -46,7 +46,7 @@ func FillCallstack(cs *schema.Callstack, rawStack []uintptr, allFrames bool) {
 
 // HashCallstack computes a hash value for a stack (useful for stack comparison etc.)
 func HashCallstack(cs *schema.Callstack) (string, error) {
-	h := md5.New()
+	h := fnv.New128a()
 
 	for _, sf := range cs.Frames {
 		if _, err := io.WriteString(h, DumpStackFrame(sf)); err != nil {

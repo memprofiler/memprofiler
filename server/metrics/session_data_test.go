@@ -1,33 +1,24 @@
 package metrics
 
 import (
-	"context"
 	"io/ioutil"
 	"math"
 	"testing"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
-
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+
 	"github.com/memprofiler/memprofiler/schema"
 )
 
-var (
-	stubLogger *logrus.Logger
-	stubCtx    = context.Background()
-	errOK      error
-)
-
-func init() {
-	stubLogger = logrus.New()
-	stubLogger.Out = ioutil.Discard
-}
-
 // A trivial case, when every indicator is incremented once per second within a single location
 func TestSessionData_LinearGrowth(t *testing.T) {
+
+	stubLogger := logrus.New()
+	stubLogger.Out = ioutil.Discard
 
 	cs := &schema.Callstack{
 		Frames: []*schema.StackFrame{

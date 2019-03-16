@@ -15,7 +15,7 @@ func (s *saveStateAwaitMeasurement) addMeasurement(mm *schema.Measurement) error
 	s.counter++
 	s.p.getLogger().WithField("id", s.counter).Debug("Measurement received")
 
-	// 1. Save data to persistant storage
+	// 1. Save data to persistent storage
 	if err := s.p.getDataSaver().Save(mm); err != nil {
 		return err
 	}
