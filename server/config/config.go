@@ -36,8 +36,8 @@ func (c *Config) Verify() error {
 	return nil
 }
 
-// NewConfigFromFile builds config structure from path
-func NewConfigFromFile(path string) (*Config, error) {
+// FromYAMLFile builds config structure from path
+func FromYAMLFile(path string) (*Config, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err

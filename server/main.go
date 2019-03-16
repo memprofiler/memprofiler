@@ -11,7 +11,7 @@ func main() {
 	cfgPath := flag.String("c", "", "path to config file")
 	flag.Parse()
 
-	cfg, err := config.NewConfigFromFile(*cfgPath)
+	cfg, err := config.FromYAMLFile(*cfgPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -19,4 +19,5 @@ func main() {
 	if err := run(cfg); err != nil {
 		log.Fatal(err)
 	}
+
 }

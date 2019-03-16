@@ -13,6 +13,7 @@ before_install:
   - make deps
   - make generate
   - go get -t -v ./...
+  - make lint
 
 env:
   - PATH=$HOME/protoc/bin:$PATH

@@ -4,39 +4,29 @@ import (
 	"fmt"
 	"sort"
 	"time"
-
-	"github.com/ChannelMeter/iso8601duration"
 )
 
 // MetricsConfig contains settings for a task runner
 // which computes session metrics in a background
 type MetricsConfig struct {
-	// AveragingWindowsString defines which parts of time series will
+	// AveragingWindows defines which parts of time series will
 	// be used for session metrics computation. Client may want to have
 	// trend values for last 5 sec, 1 min and 1 hour, for example.
-	AveragingWindowsString []string `yaml:"averaging_windows"`
-	// AveragingWindow is a sorted list of averaging window values
-	AveragingWindows []time.Duration `yaml:"-"`
+	AveragingWindows []time.Duration `yaml:"averaging_windows"`
 }
 
 // Verify checks config
 func (c *MetricsConfig) Verify() error {
 
-	if len(c.AveragingWindowsString) < 1 {
-		return fmt.Errorf("empty MetricsConfig.AveragingWindow")
+	if len(c.AveragingWindows) < 1 {
+		return fmt.Errorf("no averaging_windows configured")
 	}
 
-	// fill duration list with data
-	for _, windowStr := range c.AveragingWindowsString {
-		windowDuration, err := duration.FromString(windowStr)
-		if err != nil {
-			return fmt.Errorf("failed to parse string '%s' to duration: %v", windowStr, err)
-		}
-		c.AveragingWindows = append(c.AveragingWindows, windowDuration.ToDuration())
+	if len(c.AveragingWindows) > 5 {
+		return fmt.Errorf("too many (more than 5) averaging_windows configured: this will cause high CPU consumption")
 	}
-	sort.Slice(c.AveragingWindows, func(i, j int) bool {
-		return c.AveragingWindows[i] < c.AveragingWindows[j]
-	})
+
+	sort.Slice(c.AveragingWindows, func(i, j int) bool { return c.AveragingWindows[i] < c.AveragingWindows[j] })
 
 	return nil
 }
