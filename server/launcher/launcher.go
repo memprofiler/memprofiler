@@ -1,4 +1,4 @@
-package main
+package launcher
 
 import (
 	"github.com/sirupsen/logrus"
@@ -8,34 +8,45 @@ import (
 	"github.com/memprofiler/memprofiler/server/config"
 	"github.com/memprofiler/memprofiler/server/frontend"
 	"github.com/memprofiler/memprofiler/server/locator"
-	"github.com/memprofiler/memprofiler/utils"
 )
 
-func run(cfg *config.Config) error {
+type Launcher struct {
+	locator  *locator.Locator
+	logger   logrus.FieldLogger
+	cfg      *config.Config
+	services services
+	errChan  chan<- error
+}
 
-	var (
-		err     error
-		errChan = make(chan error, 2)
-	)
+func (l *Launcher) Start() {
+	var err error
+	l.services, err = runServices(l.locator, l.cfg, l.errChan)
+	if err != nil {
+		l.errChan <- err
+	}
+	l.services.start(l.logger)
+}
+
+func (l *Launcher) Stop() {
+	l.locator.Quit()
+	l.services.stop(l.locator.Logger)
+}
+
+func New(logger logrus.FieldLogger, cfg *config.Config, errChan chan<- error) (*Launcher, error) {
 
 	// run subsystems
-	locator, err := locator.NewLocator(cfg)
+	l, err := locator.NewLocator(logger, cfg)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	logger := locator.Logger
-	defer locator.Quit()
 
-	// run long-running tasks
-	ss, err := runServices(locator, cfg, errChan)
-	if err != nil {
-		return err
+	result := &Launcher{
+		locator: l,
+		logger:  logger,
+		cfg:     cfg,
+		errChan: errChan,
 	}
-	ss.start(logger)
-	defer ss.stop(logger)
-
-	utils.BlockOnSignal(logger, errChan)
-	return nil
+	return result, nil
 }
 
 type services map[string]common.Service
@@ -62,7 +73,7 @@ const (
 func runServices(
 	locator *locator.Locator,
 	cfg *config.Config,
-	errChan chan error,
+	errChan chan<- error,
 ) (services, error) {
 
 	var (

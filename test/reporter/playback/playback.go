@@ -1,4 +1,4 @@
-package lib
+package playback
 
 import (
 	"context"
@@ -6,17 +6,18 @@ import (
 	"time"
 
 	"github.com/memprofiler/memprofiler/server/common"
+	"github.com/memprofiler/memprofiler/test/reporter/config"
 )
 
-// playback is responsible for reproducing the desired memory
+// Playback is responsible for reproducing the desired memory
 // consumption behaviour (according to provided scenario)
-type playback interface {
+type Playback interface {
 	common.Subsystem
 }
 
 type defaultPlayback struct {
 	container container
-	scenario  *Scenario
+	scenario  *config.Scenario
 	errChan   chan<- error // report fatal errors to the client
 	wg        sync.WaitGroup
 	ctx       context.Context
@@ -57,11 +58,11 @@ func (p *defaultPlayback) loop() {
 	}
 }
 
-func newPlayback(container container, scenario *Scenario, errChan chan<- error) playback {
+func New(scenario *config.Scenario, errChan chan<- error) Playback {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	pb := &defaultPlayback{
-		container: container,
+		container: newContainer(),
 		scenario:  scenario,
 		errChan:   errChan,
 		wg:        sync.WaitGroup{},

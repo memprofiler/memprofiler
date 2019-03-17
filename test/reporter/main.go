@@ -5,7 +5,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/memprofiler/memprofiler/test/reporter/lib"
+	"github.com/memprofiler/memprofiler/test/reporter/config"
+	"github.com/memprofiler/memprofiler/test/reporter/launcher"
 	"github.com/memprofiler/memprofiler/utils"
 )
 
@@ -17,14 +18,14 @@ func main() {
 	logger := logrus.New()
 
 	// prepare config
-	cfg, err := lib.FromYAMLFile(configPath)
+	cfg, err := config.FromYAMLFile(configPath)
 	if err != nil {
 		logger.Fatal(err)
 	}
 
 	// launch application
 	errChan := make(chan error, 1)
-	ln, err := lib.NewLauncher(cfg, logger, errChan)
+	ln, err := launcher.New(logger, cfg, errChan)
 	if err != nil {
 		logger.Fatal(err)
 	}

@@ -1,15 +1,17 @@
-package lib
+package launcher
 
 import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/memprofiler/memprofiler/client"
 	"github.com/memprofiler/memprofiler/server/common"
+	"github.com/memprofiler/memprofiler/test/reporter/config"
+	"github.com/memprofiler/memprofiler/test/reporter/playback"
 )
 
 type launcher struct {
 	client   client.Profiler
-	playback playback
+	playback playback.Playback
 }
 
 func (l *launcher) Quit() {
@@ -17,7 +19,7 @@ func (l *launcher) Quit() {
 	l.client.Quit()
 }
 
-func NewLauncher(cfg *Config, logger logrus.FieldLogger, errChan chan<- error) (common.Subsystem, error) {
+func New(logger logrus.FieldLogger, cfg *config.Config, errChan chan<- error) (common.Subsystem, error) {
 
 	// create memprofiler client
 	profilerLogger := client.LoggerFromLogrus(logger)
@@ -27,7 +29,7 @@ func NewLauncher(cfg *Config, logger logrus.FieldLogger, errChan chan<- error) (
 	}
 
 	// run memory consumption scenario
-	playback := newPlayback(newContainer(), cfg.Scenario, errChan)
+	playback := playback.New(cfg.Scenario, errChan)
 
 	l := &launcher{
 		client:   memprofilerClient,
