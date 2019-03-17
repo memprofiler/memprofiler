@@ -19,5 +19,4 @@ func main() {
 	if err := run(cfg); err != nil {
 		log.Fatal(err)
 	}
-
 }

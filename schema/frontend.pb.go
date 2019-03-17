@@ -591,7 +591,7 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// MemprofilerFrontendClient is the client API for MemprofilerFrontend service.
+// MemprofilerFrontendClient is the client Backend for MemprofilerFrontend service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MemprofilerFrontendClient interface {
@@ -672,7 +672,7 @@ func (x *memprofilerFrontendSubscribeForSessionClient) Recv() (*SessionMetrics, 
 	return m, nil
 }
 
-// MemprofilerFrontendServer is the server API for MemprofilerFrontend service.
+// MemprofilerFrontendServer is the server Backend for MemprofilerFrontend service.
 type MemprofilerFrontendServer interface {
 	// GetServices returns the list of registered services
 	GetServices(context.Context, *GetServicesRequest) (*GetServicesResponse, error)

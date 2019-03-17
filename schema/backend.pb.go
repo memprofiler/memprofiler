@@ -461,7 +461,7 @@ var _ grpc.ClientConn
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion4
 
-// MemprofilerBackendClient is the client API for MemprofilerBackend service.
+// MemprofilerBackendClient is the client Backend for MemprofilerBackend service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MemprofilerBackendClient interface {
@@ -511,7 +511,7 @@ func (x *memprofilerBackendSaveReportClient) CloseAndRecv() (*SaveReportResponse
 	return m, nil
 }
 
-// MemprofilerBackendServer is the server API for MemprofilerBackend service.
+// MemprofilerBackendServer is the server Backend for MemprofilerBackend service.
 type MemprofilerBackendServer interface {
 	// SaveReport is a client-side stream used to save memory usage reports to Memprofiler server
 	SaveReport(MemprofilerBackend_SaveReportServer) error

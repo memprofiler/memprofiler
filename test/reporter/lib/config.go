@@ -1,12 +1,12 @@
-package main
+package lib
 
 import (
 	"io/ioutil"
-	"time"
 
 	"gopkg.in/yaml.v2"
 
 	"github.com/memprofiler/memprofiler/client"
+	"github.com/memprofiler/memprofiler/utils"
 )
 
 // Config is a configuration for utility application that provides
@@ -30,7 +30,7 @@ type Step struct {
 	// How much memory should be added / dropped at once
 	MemoryDelta int `json:"memory_delta"`
 	// Pause duration after memory allocation / freeing
-	Wait time.Duration `json:"wait"`
+	Wait utils.Duration `json:"wait"`
 }
 
 // FromYAMLFile builds config structure from YAML formatted file

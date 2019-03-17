@@ -91,23 +91,23 @@ func (s *server) SubscribeForSession(
 	}
 }
 
-// Start runs HTTP API
+// Start runs HTTP Backend
 func (s *server) Start() { s.errChan <- s.httpServer.ListenAndServe() }
 
 const terminationTimeout = time.Second
 
-// Stop terminates HTTP API
+// Stop terminates HTTP Backend
 func (s *server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), terminationTimeout)
 	defer cancel()
 	if err := s.httpServer.Shutdown(ctx); err != nil && err != ctx.Err() {
-		s.logger.WithError(err).Error("API shutdown error")
+		s.logger.WithError(err).Error("Backend shutdown error")
 	}
 }
 
 // NewServer initializes new server
 func NewServer(
-	cfg *config.WebConfig,
+	cfg *config.FrontendConfig,
 	locator *locator.Locator,
 	errChan chan<- error,
 ) (common.Service, error) {

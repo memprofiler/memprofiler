@@ -1,10 +1,6 @@
 package main
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
-
 	"github.com/sirupsen/logrus"
 
 	"github.com/memprofiler/memprofiler/server/backend"
@@ -12,6 +8,7 @@ import (
 	"github.com/memprofiler/memprofiler/server/config"
 	"github.com/memprofiler/memprofiler/server/frontend"
 	"github.com/memprofiler/memprofiler/server/locator"
+	"github.com/memprofiler/memprofiler/utils"
 )
 
 func run(cfg *config.Config) error {
@@ -37,21 +34,7 @@ func run(cfg *config.Config) error {
 	ss.start(logger)
 	defer ss.stop(logger)
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	signal.Notify(signalChan, syscall.SIGTERM)
-
-	select {
-	case <-signalChan:
-		logger.Warning("Interrupt signal has been received")
-	case err := <-errChan:
-		if err != nil {
-			logger.WithError(err).Error("Fatal error, going to terminate server")
-		} else {
-			logger.Warning("Going to terminate server")
-		}
-	}
-
+	utils.BlockOnSignal(logger, errChan)
 	return nil
 }
 
@@ -72,8 +55,8 @@ func (ss services) stop(logger logrus.FieldLogger) {
 }
 
 const (
-	labelAPI = "api"
-	labelWeb = "web"
+	labelBackend  = "backend"
+	labelFrontend = "frontend"
 )
 
 func runServices(
@@ -87,14 +70,14 @@ func runServices(
 		ss  = services(map[string]common.Service{})
 	)
 
-	// 1. GRPC API
-	ss[labelAPI], err = backend.NewServer(cfg.API, locator, errChan)
+	// 1. GRPC Backend
+	ss[labelBackend], err = backend.NewServer(cfg.Backend, locator, errChan)
 	if err != nil {
 		return nil, err
 	}
 
-	// 2. Web
-	ss[labelWeb], err = frontend.NewServer(cfg.Web, locator, errChan)
+	// 2. Frontend
+	ss[labelFrontend], err = frontend.NewServer(cfg.Frontend, locator, errChan)
 	if err != nil {
 		return nil, err
 	}

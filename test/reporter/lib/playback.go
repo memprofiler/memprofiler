@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 // playback is responsible for reproducing the desired memory
 // consumption behaviour (according to provided scenario)
 type playback interface {
-	common.Service
+	common.Subsystem
 }
 
 type defaultPlayback struct {
@@ -23,12 +23,7 @@ type defaultPlayback struct {
 	cancel    context.CancelFunc
 }
 
-func (p *defaultPlayback) Start() {
-	p.wg.Add(1)
-	go p.loop()
-}
-
-func (p *defaultPlayback) Stop() {
+func (p *defaultPlayback) Quit() {
 	p.cancel()
 	p.wg.Wait()
 }
@@ -54,7 +49,7 @@ func (p *defaultPlayback) loop() {
 
 		// wait for a while
 		select {
-		case <-time.NewTimer(step.Wait).C:
+		case <-time.NewTimer(step.Wait.Duration).C:
 			break
 		case <-p.ctx.Done():
 			return
@@ -64,7 +59,8 @@ func (p *defaultPlayback) loop() {
 
 func newPlayback(container container, scenario *Scenario, errChan chan<- error) playback {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &defaultPlayback{
+
+	pb := &defaultPlayback{
 		container: container,
 		scenario:  scenario,
 		errChan:   errChan,
@@ -72,4 +68,9 @@ func newPlayback(container container, scenario *Scenario, errChan chan<- error) 
 		ctx:       ctx,
 		cancel:    cancel,
 	}
+
+	pb.wg.Add(1)
+	go pb.loop()
+
+	return pb
 }
