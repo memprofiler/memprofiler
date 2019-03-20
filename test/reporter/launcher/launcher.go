@@ -29,7 +29,7 @@ func New(logger logrus.FieldLogger, cfg *config.Config, errChan chan<- error) (c
 	}
 
 	// run memory consumption scenario
-	playback := playback.New(cfg.Scenario, errChan)
+	playback := playback.New(logger, cfg.Scenario, errChan)
 
 	l := &launcher{
 		client:   memprofilerClient,

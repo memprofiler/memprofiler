@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/memprofiler/memprofiler/server/common"
 	"github.com/memprofiler/memprofiler/test/reporter/config"
 )
@@ -58,11 +60,11 @@ func (p *defaultPlayback) loop() {
 	}
 }
 
-func New(scenario *config.Scenario, errChan chan<- error) Playback {
+func New(logger logrus.FieldLogger, scenario *config.Scenario, errChan chan<- error) Playback {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	pb := &defaultPlayback{
-		container: newContainer(),
+		container: newContainer(logger),
 		scenario:  scenario,
 		errChan:   errChan,
 		wg:        sync.WaitGroup{},

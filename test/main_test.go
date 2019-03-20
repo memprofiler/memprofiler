@@ -1,7 +1,11 @@
 package test
 
 import (
+	"fmt"
+	"go/build"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -16,12 +20,16 @@ type clean func()
 
 func runServer(logger logrus.FieldLogger, cfgPath string, errChan chan<- error) (clean, error) {
 
+	// parse base config
 	cfg, err := serverConfig.FromYAMLFile(cfgPath)
 	if err != nil {
 		return nil, err
 	}
 
-	l, err := serverLauncher.New(logger, cfg, errChan)
+	// override data dir
+	cfg.Storage.Filesystem.DataDir = fmt.Sprintf("/tmp/memprofiler_%v", time.Now().Format("20060102150405"))
+
+	l, err := serverLauncher.New(logger.WithField("side", "server"), cfg, errChan)
 	if err != nil {
 		return nil, err
 	}
@@ -35,7 +43,7 @@ func runReporter(logger logrus.FieldLogger, cfgPath string, errChan chan<- error
 	if err != nil {
 		return nil, err
 	}
-	l, err := reporterLauncher.New(logger, cfg, errChan)
+	l, err := reporterLauncher.New(logger.WithField("side", "reporter"), cfg, errChan)
 	if err != nil {
 		return nil, err
 	}
@@ -45,22 +53,28 @@ func runReporter(logger logrus.FieldLogger, cfgPath string, errChan chan<- error
 
 func TestIntegration(t *testing.T) {
 
+	projectPath := filepath.Join(build.Default.GOPATH, "src/github.com/memprofiler/memprofiler")
+
 	logger := logrus.New()
 	logger.Level = logrus.DebugLevel
 
 	errChan := make(chan error, 2)
 
 	// run memprofiler server
-	serverCleanup, err := runServer(logger, "./server/config/example.yml", errChan)
+	serverCfg := filepath.Join(projectPath, "server/config/example.yml")
+	serverCleanup, err := runServer(logger, serverCfg, errChan)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	defer serverCleanup()
 
 	// run built-in memprofiler client
-	reporterCleanup, err := runReporter(logger, "./test/reporter/config/linear_growth.yml", errChan)
+	reporterCfg := filepath.Join(projectPath, "test/reporter/config/linear_growth.yml")
+	reporterCleanup, err := runReporter(logger, reporterCfg, errChan)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	defer reporterCleanup()
+
+	time.Sleep(3 * time.Second)
 }

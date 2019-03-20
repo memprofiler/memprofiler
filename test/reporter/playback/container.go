@@ -30,4 +30,4 @@ func (c *defaultContainer) grow(delta int) error {
 }
 
 // newContainer constructs new container
-func newContainer() container { return &defaultContainer{} }
+func newContainer(logger logrus.FieldLogger) container { return &defaultContainer{logger: logger} }

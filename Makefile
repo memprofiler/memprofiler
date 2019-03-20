@@ -29,4 +29,7 @@ test:
 	overalls -project=github.com/memprofiler/memprofiler -covermode=count -ignore=test,misc,vendor -concurrency=2
 	go tool cover -func=./overalls.coverprofile
 
-.PHONY: schema
+integration_test:
+	go test -c ./test -o memprofiler-test && ./memprofiler-test -test.count=1
+
+.PHONY: schema test

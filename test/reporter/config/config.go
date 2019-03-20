@@ -13,24 +13,24 @@ import (
 // some memory consumption reports to the application
 type Config struct {
 	// Memory consumption scenario
-	Scenario *Scenario `json:"scenario"`
+	Scenario *Scenario `yaml:"scenario"`
 	// Memprofiler client config
-	Client *client.Config `json:"client"`
+	Client *client.Config `yaml:"client"`
 }
 
 // Scenario configures application behavior in terms of memory consumption
 type Scenario struct {
 	// Sequence of elementary steps to emulate some memory strategy.
 	// Will be played in a loop (like a circle)
-	Steps []*Step `json:"step"`
+	Steps []*Step `yaml:"steps"`
 }
 
 // Step is an minimal element describing memory consumption strategy behaviour
 type Step struct {
 	// How much memory should be added / dropped at once
-	MemoryDelta int `json:"memory_delta"`
+	MemoryDelta int `yaml:"memory_delta"`
 	// Pause duration after memory allocation / freeing
-	Wait utils.Duration `json:"wait"`
+	Wait utils.Duration `yaml:"wait"`
 }
 
 // FromYAMLFile builds config structure from YAML formatted file
