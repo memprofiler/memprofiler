@@ -18,13 +18,12 @@ env:
   - PATH=$HOME/protoc/bin:$PATH
 
 install:
-  - make build
   - make lint
-  - make test
-  - make integration_test
+  - make build
 
 script:
   - ./coverage.sh
+  - make integration_test
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
