@@ -3,6 +3,7 @@
 
 # binary
 memprofiler
+memprofiler-test
 
 # coverage
 coverage.txt

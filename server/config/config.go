@@ -8,20 +8,20 @@ import (
 
 // Config is a top-level structure with all server settings
 type Config struct {
-	API     *APIConfig     `yaml:"api"`
-	Web     *WebConfig     `yaml:"web"`
-	Storage *StorageConfig `yaml:"storage"`
-	Metrics *MetricsConfig `yaml:"metrics"`
-	Logging *LoggingConfig `yaml:"logging"`
+	Backend  *BackendConfig  `yaml:"api"`
+	Frontend *FrontendConfig `yaml:"web"`
+	Storage  *StorageConfig  `yaml:"storage"`
+	Metrics  *MetricsConfig  `yaml:"metrics"`
+	Logging  *LoggingConfig  `yaml:"logging"`
 }
 
 // Verify checks config
 func (c *Config) Verify() error {
 	// TODO: use reflect to iterate over pointers
-	if err := c.API.Verify(); err != nil {
+	if err := c.Backend.Verify(); err != nil {
 		return err
 	}
-	if err := c.Web.Verify(); err != nil {
+	if err := c.Frontend.Verify(); err != nil {
 		return err
 	}
 	if err := c.Storage.Verify(); err != nil {
@@ -36,8 +36,8 @@ func (c *Config) Verify() error {
 	return nil
 }
 
-// NewConfigFromFile builds config structure from path
-func NewConfigFromFile(path string) (*Config, error) {
+// FromYAMLFile builds config structure from path
+func FromYAMLFile(path string) (*Config, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err

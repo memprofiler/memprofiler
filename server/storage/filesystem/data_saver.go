@@ -12,11 +12,10 @@ import (
 
 var _ storage.DataSaver = (*defaultDataSaver)(nil)
 
-var delimiter = []byte{10} // '\n'
-
 // defaultDataSaver puts records to a file sequentially
 type defaultDataSaver struct {
 	codec       codec
+	delimiter   []byte
 	fd          *os.File
 	sessionDesc *schema.SessionDescription
 	cfg         *config.FilesystemStorageConfig
@@ -26,7 +25,7 @@ type defaultDataSaver struct {
 func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 
 	// put delimiter after last record
-	if _, err := s.fd.Write(delimiter); err != nil {
+	if _, err := s.fd.Write(s.delimiter); err != nil {
 		return err
 	}
 
@@ -69,6 +68,7 @@ func newDataSaver(
 
 	saver := &defaultDataSaver{
 		fd:          fd,
+		delimiter:   []byte{10}, // '\n'
 		codec:       codec,
 		sessionDesc: sessionDesc,
 		cfg:         cfg,

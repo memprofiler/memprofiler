@@ -31,7 +31,8 @@ type locationData struct {
 // registerMeasurement appends new measurement to the process
 func (ld *locationData) registerMeasurement(timestamp time.Time, mu *schema.MemoryUsage) {
 
-	// check if there are outdated records
+	// check if there are outdated records and compute index
+	// that
 	threshold := time.Now().Add(-1 * ld.lifetime)
 	edge := 0
 	for i, timestamp := range ld.Timestamps {
@@ -53,13 +54,23 @@ func (ld *locationData) registerMeasurement(timestamp time.Time, mu *schema.Memo
 		ld.Timestamps = ld.Timestamps[edge:]
 	}
 
-	// add required data
-	ld.AllocObjects = append(ld.AllocObjects, float64(mu.AllocObjects))
-	ld.AllocBytes = append(ld.AllocBytes, float64(mu.AllocBytes))
-	ld.FreeObjects = append(ld.FreeObjects, float64(mu.FreeObjects))
-	ld.FreeBytes = append(ld.FreeBytes, float64(mu.FreeBytes))
-	ld.InUseObjects = append(ld.InUseObjects, float64(mu.AllocObjects)-float64(mu.FreeObjects))
-	ld.InUseBytes = append(ld.InUseBytes, float64(mu.AllocBytes)-float64(mu.FreeBytes))
+	if mu != nil {
+		// append measurement data to the slices
+		ld.AllocObjects = append(ld.AllocObjects, float64(mu.AllocObjects))
+		ld.AllocBytes = append(ld.AllocBytes, float64(mu.AllocBytes))
+		ld.FreeObjects = append(ld.FreeObjects, float64(mu.FreeObjects))
+		ld.FreeBytes = append(ld.FreeBytes, float64(mu.FreeBytes))
+		ld.InUseObjects = append(ld.InUseObjects, float64(mu.AllocObjects)-float64(mu.FreeObjects))
+		ld.InUseBytes = append(ld.InUseBytes, float64(mu.AllocBytes)-float64(mu.FreeBytes))
+	} else {
+		// special case, see comments for the caller
+		ld.AllocObjects = append(ld.AllocObjects, 0)
+		ld.AllocBytes = append(ld.AllocBytes, 0)
+		ld.FreeObjects = append(ld.FreeObjects, 0)
+		ld.FreeBytes = append(ld.FreeBytes, 0)
+		ld.InUseObjects = append(ld.InUseObjects, 0)
+		ld.InUseBytes = append(ld.InUseBytes, 0)
+	}
 	ld.Timestamps = append(ld.Timestamps, timestamp)
 }
 

@@ -142,6 +142,18 @@ func (s *defaultStorage) populateSessionStorage() error {
 
 // NewStorage builds new storage that keeps measurements in separate files
 func NewStorage(logger logrus.FieldLogger, cfg *config.FilesystemStorageConfig) (storage.Storage, error) {
+
+	// create data directory if not exists
+	if _, err := os.Stat(cfg.DataDir); err != nil {
+		if os.IsNotExist(err) {
+			if err := os.MkdirAll(cfg.DataDir, 0755); err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &defaultStorage{

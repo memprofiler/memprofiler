@@ -29,7 +29,6 @@ func (s *defaultSubscription) publish(msg *schema.SessionMetrics) {
 	case s.updates <- msg:
 	case <-s.ctx.Done():
 	}
-	return
 }
 
 func (s *defaultSubscription) close() { close(s.updates) }

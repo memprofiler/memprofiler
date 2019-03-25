@@ -3,7 +3,6 @@ package metrics
 import (
 	"context"
 	"sync"
-	"time"
 
 	"github.com/sirupsen/logrus"
 
@@ -141,12 +140,6 @@ func (r *defaultComputer) populateSessionData(
 func (r *defaultComputer) Quit() {
 	r.cancel()
 	r.wg.Wait()
-}
-
-// timeSeriesLifetime extracts retention time for time series from config
-func (r *defaultComputer) timeSeriesLifetime() time.Duration {
-	// takes greatest averaging window
-	return r.cfg.AveragingWindows[len(r.cfg.AveragingWindows)-1]
 }
 
 // NewComputer instantiates new runner

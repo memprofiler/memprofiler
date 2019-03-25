@@ -1,0 +1,13 @@
+client:
+  server_endpoint: "localhost:46219"
+  service_description:
+    service_type: reporter
+    service_instance: test
+  periodicity: 1s
+  verbose: true
+
+scenario:
+  steps:
+    # linear growth, 1 Kb / sec
+    - memory_delta: 1024
+      wait: 1s

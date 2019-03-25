@@ -93,7 +93,7 @@ func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 			stacks[cs.Id] = location
 		}
 
-		utils.UpdateMemoryUsage(location.MemoryUsage, &record)
+		utils.UpdateMemoryUsage(location.MemoryUsage, record)
 	}
 
 	mm := &schema.Measurement{
@@ -164,7 +164,7 @@ func NewProfiler(logger Logger, cfg *Config) (Profiler, error) {
 
 	p := &defaultProfiler{
 		stream:  stream,
-		limiter: rate.NewLimiter(rate.Every(cfg.Periodicity), 1),
+		limiter: rate.NewLimiter(rate.Every(cfg.Periodicity.Duration), 1),
 		logger:  logger,
 		cfg:     cfg,
 		ctx:     ctx,

@@ -9,7 +9,6 @@ import (
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/grpclog"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/common"
@@ -29,11 +28,17 @@ type server struct {
 	logger     logrus.FieldLogger
 }
 
-func (s *server) GetServices(ctx context.Context, request *schema.GetServicesRequest) (*schema.GetServicesResponse, error) {
+func (s *server) GetServices(
+	ctx context.Context,
+	request *schema.GetServicesRequest,
+) (*schema.GetServicesResponse, error) {
 	return &schema.GetServicesResponse{ServiceTypes: s.storage.Services()}, nil
 }
 
-func (s *server) GetInstances(ctx context.Context, request *schema.GetInstancesRequest) (*schema.GetInstancesResponse, error) {
+func (s *server) GetInstances(
+	ctx context.Context,
+	request *schema.GetInstancesRequest,
+) (*schema.GetInstancesResponse, error) {
 	instances, err := s.storage.Instances(request.GetServiceType())
 	if err != nil {
 		// TODO: think about google.golang.org/grpc/status
@@ -42,7 +47,10 @@ func (s *server) GetInstances(ctx context.Context, request *schema.GetInstancesR
 	return &schema.GetInstancesResponse{ServiceInstances: instances}, nil
 }
 
-func (s *server) GetSessions(ctx context.Context, request *schema.GetSessionsRequest) (*schema.GetSessionsResponse, error) {
+func (s *server) GetSessions(
+	ctx context.Context,
+	request *schema.GetSessionsRequest,
+) (*schema.GetSessionsResponse, error) {
 	sessions, err := s.storage.Sessions(request.GetServiceDescription())
 	if err != nil {
 		// TODO: think about google.golang.org/grpc/status
@@ -83,23 +91,23 @@ func (s *server) SubscribeForSession(
 	}
 }
 
-// Start runs HTTP API
+// Start runs HTTP Backend
 func (s *server) Start() { s.errChan <- s.httpServer.ListenAndServe() }
 
 const terminationTimeout = time.Second
 
-// Stop terminates HTTP API
+// Stop terminates HTTP Backend
 func (s *server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), terminationTimeout)
 	defer cancel()
 	if err := s.httpServer.Shutdown(ctx); err != nil && err != ctx.Err() {
-		s.logger.WithError(err).Error("API shutdown error")
+		s.logger.WithError(err).Error("Backend shutdown error")
 	}
 }
 
 // NewServer initializes new server
 func NewServer(
-	cfg *config.WebConfig,
+	cfg *config.FrontendConfig,
 	locator *locator.Locator,
 	errChan chan<- error,
 ) (common.Service, error) {
@@ -113,7 +121,6 @@ func NewServer(
 
 	grpcServer := grpc.NewServer()
 	schema.RegisterMemprofilerFrontendServer(grpcServer, s)
-	grpclog.SetLogger(locator.Logger) // FIXME: replace to V2
 	wrappedServer := grpcweb.WrapServer(grpcServer)
 
 	// Dump to logs resource list

@@ -20,7 +20,7 @@ type server struct {
 	protocolFactory protocolFactory
 	logger          logrus.FieldLogger
 	errChan         chan<- error
-	cfg             *config.APIConfig
+	cfg             *config.BackendConfig
 }
 
 func (s *server) Start() {
@@ -62,7 +62,7 @@ func (s *server) SaveReport(stream schema.MemprofilerBackend_SaveReportServer) e
 
 // NewServer builds new GRPC server
 func NewServer(
-	cfg *config.APIConfig,
+	cfg *config.BackendConfig,
 	locator *locator.Locator,
 	errChan chan<- error,
 ) (Service, error) {

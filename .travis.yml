@@ -9,7 +9,7 @@ before_install:
   - unzip /tmp/protoc.zip -d "$HOME"/protoc
   - mkdir -p "$HOME"/src && ln -s "$HOME"/protoc "$HOME"/src/protobuf
 
-  # go deps
+  # build
   - make deps
   - make generate
   - go get -t -v ./...
@@ -18,10 +18,12 @@ env:
   - PATH=$HOME/protoc/bin:$PATH
 
 install:
+  - make lint
   - make build
 
 script:
   - ./coverage.sh
+  - make integration_test
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
