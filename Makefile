@@ -1,5 +1,5 @@
 update:
-    go get changes
+	go get changes
 	go mod tidy
 
 tools:
