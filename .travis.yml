@@ -1,28 +1,22 @@
 language: go
 
 go:
-  - "1.11"
+  - "1.12.x"
 
 before_install:
-  # protoc
-  - curl -L https://github.com/google/protobuf/releases/download/v3.5.1/protoc-3.5.1-linux-x86_64.zip -o /tmp/protoc.zip
-  - unzip /tmp/protoc.zip -d "$HOME"/protoc
-  - mkdir -p "$HOME"/src && ln -s "$HOME"/protoc "$HOME"/src/protobuf
-
-  # build
-  - make deps
+  - sudo chown -R "$USER" /usr/local/
+  - make env
   - make generate
-  - go get -t -v ./...
 
 env:
-  - PATH=$HOME/protoc/bin:$PATH
+  - PATH=$PATH:/usr/local/bin GO111MODULE=on
 
 install:
-  - make lint
   - make build
 
 script:
-  - ./coverage.sh
+  # - make lint
+  - make test
   - make integration_test
 
 after_success:

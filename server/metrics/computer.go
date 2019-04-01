@@ -44,8 +44,8 @@ func (r *defaultComputer) PutMeasurement(sd *schema.SessionDescription, mm *sche
 	}
 	r.mutex.Unlock()
 
-	// compute measurements
-	if err := data.registerMeasurement(mm); err != nil {
+	// push measurement to time series
+	if err := data.appendMeasurement(mm); err != nil {
 		return err
 	}
 

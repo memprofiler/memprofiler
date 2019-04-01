@@ -17,7 +17,7 @@ import (
 // sessionData contains the most recent data of the particular session;
 // it's responsible for session metrics computation
 type sessionData struct {
-	mutex            sync.Mutex               // synchronizes access to internal structs
+	mutex            sync.RWMutex             // synchronizes access to internal structs
 	locations        map[string]*locationData // per-location stats (stackID <-> locationData)
 	lifetime         time.Duration            // the retention period for time series data
 	sessionMetrics   *schema.SessionMetrics   // latest available session metrics (potentially outdated)
@@ -55,15 +55,10 @@ LOOP:
 	return nil
 }
 
-// registerMeasurement appends new measurement data to internal time series
-func (sd *sessionData) registerMeasurement(mm *schema.Measurement) error {
-	sd.mutex.Lock()
-	defer sd.mutex.Unlock()
-	return sd.appendMeasurement(mm)
-}
-
 // appendMeasurement appends new measurement data to internal time series
 func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
+	sd.mutex.Lock()
+	defer sd.mutex.Unlock()
 
 	// register timestamp
 	timestamp, err := ptypes.Timestamp(mm.ObservedAt)
@@ -109,8 +104,8 @@ func (sd *sessionData) appendMeasurement(mm *schema.Measurement) error {
 
 // getSessionMetrics returns trend values in a lazy manner
 func (sd *sessionData) getSessionMetrics() *schema.SessionMetrics {
-	sd.mutex.Lock()
-	defer sd.mutex.Unlock()
+	sd.mutex.RLock()
+	defer sd.mutex.RUnlock()
 
 	// return existing sessionMetrics if it's not outdated
 	if !sd.outdated && sd.sessionMetrics != nil {
@@ -125,6 +120,9 @@ func (sd *sessionData) getSessionMetrics() *schema.SessionMetrics {
 
 // computeSessionMetrics performs rate computation for all known locations
 func (sd *sessionData) computeSessionMetrics() *schema.SessionMetrics {
+	sd.mutex.RLock()
+	defer sd.mutex.RUnlock()
+
 	var (
 		requestChan  = make(chan *locationData, runtime.NumCPU())
 		responseChan = make(chan *schema.LocationMetrics, runtime.NumCPU())
@@ -167,5 +165,6 @@ func newSessionData(logger logrus.FieldLogger, averagingWindows []time.Duration)
 		lifetime:         averagingWindows[len(averagingWindows)-1],
 		averagingWindows: averagingWindows,
 		logger:           logger,
+		mutex:            sync.RWMutex{},
 	}
 }
