@@ -17,6 +17,7 @@ env:
 	if [ -f /usr/local/bin/protoc ]; then \
 		rm -rf /usr/local/bin/protoc; \
 	fi;
+	# make sure that permissions are sufficient
 	mv ${PROTOBUF_DIR}/bin/* /usr/local/bin
 
 	# install headers
@@ -38,7 +39,7 @@ generate:
 	go generate ./...
 
 build:
-	go build -o memprofiler github.com/memprofiler/memprofiler/server
+	go build github.com/memprofiler/memprofiler
 
 lint:
 	golangci-lint run --enable-all ./...
