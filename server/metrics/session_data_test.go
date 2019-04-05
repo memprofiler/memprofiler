@@ -88,7 +88,7 @@ func TestSessionData_LinearGrowth(t *testing.T) {
 
 	container := newSessionData(stubLogger, averagingWindows)
 	for _, mm := range mms {
-		err := container.registerMeasurement(mm)
+		err := container.appendMeasurement(mm)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}

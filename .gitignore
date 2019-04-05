@@ -6,7 +6,7 @@ memprofiler
 memprofiler-test
 
 # coverage
-coverage.txt
+coverage*
 *.coverprofile
 
 .idea

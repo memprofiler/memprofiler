@@ -12,7 +12,7 @@ type Config struct {
 	// ServiceDescription will be used to identify data on the server side
 	ServiceDescription *schema.ServiceDescription `json:"service_description" yaml:"service_description"`
 	// Periodicity sets time interval between measurements
-	Periodicity utils.Duration `json:"periodicity" yaml:"periodicity"`
+	Periodicity *utils.Duration `json:"periodicity" yaml:"periodicity"`
 	// Verbose enables measurement printing into logger
 	Verbose bool `json:"verbose" yaml:"verbose"`
 }
