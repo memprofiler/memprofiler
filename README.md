@@ -11,10 +11,8 @@ If you have doubts whether your Go service is leaking, you're on the right
 track. Memprofiler aims to be an open source equivalent of 
 [stackimpact.com](https://stackimpact.com/). 
 
-<aside class="warning">
-The project is under active development and not ready for usage yet.
-<aside>
-
+| Warning: The project is under active development and not ready for usage yet. |
+| --- |
 
 ## Getting started
 
