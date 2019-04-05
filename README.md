@@ -24,7 +24,7 @@ Memprofiler server stores reports and performs some computations on the
 data stream to turn it in a small set of aggregated metrics. 
 User will be able to interact with Memprofiler server via simple Web UI.
 
-![Components](https://cdn1.imggmi.com/uploads/2019/4/4/0ef08a39ffbe10ca7279b04c6eedc4b0-full.png)
+![Components](https://i.ibb.co/Czp9JdH/0ef08a39ffbe10ca7279b04c6eedc4b0-full.png)
 
 To use memprofiler in your application, run client in your `main` function:
 
