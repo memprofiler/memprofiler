@@ -8,8 +8,8 @@ import (
 
 // Config is a top-level structure with all server settings
 type Config struct {
-	Backend  *BackendConfig  `yaml:"api"`
-	Frontend *FrontendConfig `yaml:"web"`
+	Backend  *BackendConfig  `yaml:"backend"`
+	Frontend *FrontendConfig `yaml:"frontend"`
 	Storage  *StorageConfig  `yaml:"storage"`
 	Metrics  *MetricsConfig  `yaml:"metrics"`
 	Logging  *LoggingConfig  `yaml:"logging"`

@@ -23,6 +23,7 @@ func (l *Launcher) Start() {
 	l.services, err = runServices(l.locator, l.cfg, l.errChan)
 	if err != nil {
 		l.errChan <- err
+		return
 	}
 	l.services.start(l.logger)
 }

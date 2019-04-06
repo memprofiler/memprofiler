@@ -67,7 +67,7 @@ func NewServer(
 	errChan chan<- error,
 ) (Service, error) {
 
-	listener, err := net.Listen("tcp", cfg.ListenEnpdoint)
+	listener, err := net.Listen("tcp", cfg.ListenEndpoint)
 	if err != nil {
 		return nil, err
 	}

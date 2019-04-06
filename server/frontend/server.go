@@ -2,13 +2,8 @@ package frontend
 
 import (
 	"context"
-	"net/http"
+	"net"
 	"sort"
-	"time"
-
-	"github.com/improbable-eng/grpc-web/go/grpcweb"
-	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/common"
@@ -16,12 +11,18 @@ import (
 	"github.com/memprofiler/memprofiler/server/locator"
 	"github.com/memprofiler/memprofiler/server/metrics"
 	"github.com/memprofiler/memprofiler/server/storage"
+
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 var _ schema.MemprofilerFrontendServer = (*server)(nil)
 
 type server struct {
-	httpServer *http.Server
+	// httpServer *http.Server
+	grpcServer *grpc.Server
+	listener   net.Listener
 	computer   metrics.Computer
 	storage    storage.Storage
 	errChan    chan<- error
@@ -91,12 +92,47 @@ func (s *server) SubscribeForSession(
 	}
 }
 
-// Start runs HTTP Backend
-func (s *server) Start() { s.errChan <- s.httpServer.ListenAndServe() }
+func (s *server) Start() { s.errChan <- s.grpcServer.Serve(s.listener) }
+
+func (s *server) Stop() { s.grpcServer.GracefulStop() }
+
+// NewServer builds new GRPC server
+func NewServer(
+	cfg *config.FrontendConfig,
+	locator *locator.Locator,
+	errChan chan<- error,
+) (common.Service, error) {
+
+	listener, err := net.Listen("tcp", cfg.ListenEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	s := &server{
+		computer: locator.Computer,
+		storage:  locator.Storage,
+		logger:   locator.Logger.WithField("subsystem", "frontend"),
+		errChan:  errChan,
+		listener: listener,
+	}
+
+	s.grpcServer = grpc.NewServer()
+	schema.RegisterMemprofilerFrontendServer(s.grpcServer, s)
+	reflection.Register(s.grpcServer)
+
+	return s, nil
+}
+
+// FIXME: use this code to setup HTTP server on the basis of GRPC server
+/*
+// Start runs Frontend server
+func (s *server) Start() {
+	s.errChan <- s.httpServer.ListenAndServe()
+}
 
 const terminationTimeout = time.Second
 
-// Stop terminates HTTP Backend
+// Stop terminates Frontend server
 func (s *server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), terminationTimeout)
 	defer cancel()
@@ -105,7 +141,7 @@ func (s *server) Stop() {
 	}
 }
 
-// NewServer initializes new server
+// NewServer initializes Frontend server
 func NewServer(
 	cfg *config.FrontendConfig,
 	locator *locator.Locator,
@@ -125,7 +161,7 @@ func NewServer(
 
 	// Dump to logs resource list
 	for _, resource := range grpcweb.ListGRPCResources(grpcServer) {
-		s.logger.WithField("URL", resource).Info("HTTP Frontend server resource")
+		s.logger.WithField("URL", resource).Debug("HTTP Frontend server resource")
 	}
 
 	handler := func(resp http.ResponseWriter, req *http.Request) {
@@ -138,3 +174,4 @@ func NewServer(
 
 	return s, nil
 }
+*/

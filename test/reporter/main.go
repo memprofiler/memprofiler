@@ -25,11 +25,12 @@ func main() {
 
 	// launch application
 	errChan := make(chan error, 1)
-	ln, err := launcher.New(logger, cfg, errChan)
+	l, err := launcher.New(logger, cfg, errChan)
 	if err != nil {
 		logger.Fatal(err)
 	}
-	defer ln.Quit()
+	l.Start()
+	defer l.Stop()
 
 	utils.BlockOnSignal(logger, errChan)
 }
