@@ -8,6 +8,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/memprofiler/memprofiler/server/common"
+
 	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -18,7 +20,7 @@ import (
 
 // Profiler should keep working during whole application lifetime
 type Profiler interface {
-	Quit()
+	common.Service
 }
 
 type defaultProfiler struct {
@@ -119,7 +121,12 @@ func (p *defaultProfiler) maybeDumpMessage(mm *schema.Measurement) {
 	}
 }
 
-func (p *defaultProfiler) Quit() {
+func (p *defaultProfiler) Start() {
+	p.wg.Add(1)
+	go p.loop()
+}
+
+func (p *defaultProfiler) Stop() {
 	p.cancel()
 	p.wg.Wait()
 	msg, err := p.stream.CloseAndRecv()
@@ -128,6 +135,29 @@ func (p *defaultProfiler) Quit() {
 	} else {
 		p.logger.Debug(fmt.Sprintf("Final stream result: %v", msg))
 	}
+}
+
+// NewProfiler launches new instance of memory profiler
+func NewProfiler(logger Logger, cfg *Config) (Profiler, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	stream, err := makeStream(ctx, cfg)
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+
+	p := &defaultProfiler{
+		stream:  stream,
+		limiter: rate.NewLimiter(rate.Every(cfg.Periodicity.Duration), 1),
+		logger:  logger,
+		cfg:     cfg,
+		ctx:     ctx,
+		cancel:  cancel,
+		wg:      sync.WaitGroup{},
+	}
+
+	return p, nil
 }
 
 const profileRecords = 256
@@ -152,36 +182,11 @@ func getMemProfileRecords() []runtime.MemProfileRecord {
 	return rs
 }
 
-// NewProfiler launches new instance of memory profiler
-func NewProfiler(logger Logger, cfg *Config) (Profiler, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	stream, err := makeStream(ctx, cfg)
-	if err != nil {
-		cancel()
-		return nil, err
-	}
-
-	p := &defaultProfiler{
-		stream:  stream,
-		limiter: rate.NewLimiter(rate.Every(cfg.Periodicity.Duration), 1),
-		logger:  logger,
-		cfg:     cfg,
-		ctx:     ctx,
-		cancel:  cancel,
-		wg:      sync.WaitGroup{},
-	}
-	p.wg.Add(1)
-	go p.loop()
-
-	return p, nil
-}
-
 // makeStream initializes GRPC stream
 func makeStream(ctx context.Context, cfg *Config) (schema.MemprofilerBackend_SaveReportClient, error) {
 
 	// prepare GRPC client
-	conn, err := grpc.Dial(cfg.ServerEndpoint, grpc.WithInsecure())
+	conn, err := grpc.Dial(cfg.ServerEndpoint, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		return nil, err
 	}

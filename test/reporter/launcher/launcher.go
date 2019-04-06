@@ -14,12 +14,17 @@ type launcher struct {
 	playback playback.Playback
 }
 
-func (l *launcher) Quit() {
-	l.playback.Quit()
-	l.client.Quit()
+func (l *launcher) Start() {
+	l.playback.Start()
+	l.client.Start()
 }
 
-func New(logger logrus.FieldLogger, cfg *config.Config, errChan chan<- error) (common.Subsystem, error) {
+func (l *launcher) Stop() {
+	l.playback.Stop()
+	l.client.Stop()
+}
+
+func New(logger logrus.FieldLogger, cfg *config.Config, errChan chan<- error) (common.Service, error) {
 
 	// create memprofiler client
 	profilerLogger := client.LoggerFromLogrus(logger)

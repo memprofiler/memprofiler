@@ -14,7 +14,7 @@ import (
 // Playback is responsible for reproducing the desired memory
 // consumption behaviour (according to provided scenario)
 type Playback interface {
-	common.Subsystem
+	common.Service
 }
 
 type defaultPlayback struct {
@@ -26,7 +26,12 @@ type defaultPlayback struct {
 	cancel    context.CancelFunc
 }
 
-func (p *defaultPlayback) Quit() {
+func (p *defaultPlayback) Start() {
+	p.wg.Add(1)
+	go p.loop()
+}
+
+func (p *defaultPlayback) Stop() {
 	p.cancel()
 	p.wg.Wait()
 }
@@ -71,9 +76,6 @@ func New(logger logrus.FieldLogger, scenario *config.Scenario, errChan chan<- er
 		ctx:       ctx,
 		cancel:    cancel,
 	}
-
-	pb.wg.Add(1)
-	go pb.loop()
 
 	return pb
 }
