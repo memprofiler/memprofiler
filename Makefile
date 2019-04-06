@@ -32,7 +32,7 @@ env:
 
 	# install tools
 	go get -u -v golang.org/x/tools/cmd/stringer
-	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v${GOLANGCI_LINT_VERSION}
+	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b /usr/local/bin v${GOLANGCI_LINT_VERSION}
 
 generate:
 	protoc -I schema schema/*.proto  --go_out=plugins=grpc:schema
