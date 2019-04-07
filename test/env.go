@@ -53,7 +53,7 @@ func (e *env) Stop() {
 	e.wg.Wait()
 }
 
-func newLauncher() (*env, error) {
+func newEnv() (*env, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
