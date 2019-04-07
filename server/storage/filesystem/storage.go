@@ -45,16 +45,11 @@ func (s *defaultStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (s
 		s.wg.Add(1)
 	}
 
-	// get new sessionID for this service instance
-	sessionID := s.sessionStorage.inc(serviceDesc)
+	// register new session for this service instance
+	session := s.sessionStorage.registerNextSession(serviceDesc)
 
 	// obtain directory to store data coming from a particular service instance
-	sessionDesc := &schema.SessionDescription{
-		ServiceType:     serviceDesc.GetServiceType(),
-		ServiceInstance: serviceDesc.GetServiceInstance(),
-		SessionId:       sessionID,
-	}
-	subdirPath := s.makeSubdirPath(sessionDesc)
+	subdirPath := s.makeSubdirPath(session.GetDescription())
 	if _, err := os.Stat(subdirPath); err != nil {
 
 		if !os.IsNotExist(err) {
@@ -67,7 +62,7 @@ func (s *defaultStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (s
 		}
 	}
 
-	return newDataSaver(subdirPath, sessionDesc, s.cfg, &s.wg, s.codec)
+	return newDataSaver(subdirPath, session.GetDescription(), s.cfg, &s.wg, s.codec)
 }
 
 func (s *defaultStorage) NewDataLoader(sd *schema.SessionDescription) (storage.DataLoader, error) {
@@ -130,7 +125,7 @@ func (s *defaultStorage) populateSessionStorage() error {
 						if err != nil {
 							return err
 						}
-						s.sessionStorage.register(serviceDesc, sessionID)
+						s.sessionStorage.registerExistingSession(serviceDesc, sessionID)
 					}
 				}
 			}
