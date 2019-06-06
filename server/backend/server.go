@@ -1,15 +1,17 @@
 package backend
 
 import (
+	"io"
 	"net"
 
 	"github.com/sirupsen/logrus"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/config"
 	"github.com/memprofiler/memprofiler/server/locator"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 )
 
 var _ Service = (*server)(nil)
@@ -44,6 +46,9 @@ func (s *server) SaveReport(stream schema.MemprofilerBackend_SaveReportServer) e
 
 	for {
 		request, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(&schema.SaveReportResponse{})
+		}
 		if err != nil {
 			return err
 		}

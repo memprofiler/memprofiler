@@ -3,7 +3,7 @@ package config
 import (
 	"io/ioutil"
 
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 // Config is a top-level structure with all server settings

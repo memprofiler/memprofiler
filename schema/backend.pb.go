@@ -9,6 +9,8 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -515,6 +517,14 @@ func (x *memprofilerBackendSaveReportClient) CloseAndRecv() (*SaveReportResponse
 type MemprofilerBackendServer interface {
 	// SaveReport is a client-side stream used to save memory usage reports to Memprofiler server
 	SaveReport(MemprofilerBackend_SaveReportServer) error
+}
+
+// UnimplementedMemprofilerBackendServer can be embedded to have forward compatible implementations.
+type UnimplementedMemprofilerBackendServer struct {
+}
+
+func (*UnimplementedMemprofilerBackendServer) SaveReport(srv MemprofilerBackend_SaveReportServer) error {
+	return status.Errorf(codes.Unimplemented, "method SaveReport not implemented")
 }
 
 func RegisterMemprofilerBackendServer(s *grpc.Server, srv MemprofilerBackendServer) {

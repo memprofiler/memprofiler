@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/memprofiler/memprofiler/schema"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestIntegration(t *testing.T) {
@@ -76,7 +76,20 @@ func TestIntegration(t *testing.T) {
 	assert.Nil(t, session.Metadata.FinishedAt)
 
 	// 4. subscribe for session updates
-	//subscriptionRequest := schema.SubscribeForSessionRequest{
-	//	SessionDescription: session.Description,
-	//}
+	subscriptionRequest := &schema.SubscribeForSessionRequest{
+		SessionDescription: session.Description,
+	}
+	subscription, err := e.client.SubscribeForSession(context.Background(), subscriptionRequest)
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+	metrics, err := subscription.Recv()
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
+	assert.NotNil(t, metrics)
+	err = subscription.CloseSend()
+	if !assert.NoError(t, err) {
+		t.FailNow()
+	}
 }

@@ -1,8 +1,9 @@
 package backend
 
 import (
-	"github.com/memprofiler/memprofiler/schema"
 	"github.com/sirupsen/logrus"
+
+	"github.com/memprofiler/memprofiler/schema"
 )
 
 var _ saveState = (*saveStateAwaitDescription)(nil)

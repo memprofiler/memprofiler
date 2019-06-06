@@ -18,6 +18,8 @@ import (
 	"github.com/memprofiler/memprofiler/utils"
 )
 
+var _ Profiler = (*defaultProfiler)(nil)
+
 // Profiler should keep working during whole application lifetime
 type Profiler interface {
 	common.Service

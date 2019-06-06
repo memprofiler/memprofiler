@@ -8,10 +8,11 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/config"
 	"github.com/memprofiler/memprofiler/server/storage"
-	"github.com/sirupsen/logrus"
 )
 
 var _ storage.Storage = (*defaultStorage)(nil)
@@ -109,11 +110,6 @@ func (s *defaultStorage) populateSessionStorage() error {
 				return err
 			}
 			for _, s2 := range subdirs2 {
-				serviceDesc := &schema.ServiceDescription{
-					ServiceType:     s1.Name(),
-					ServiceInstance: s2.Name(),
-				}
-
 				s2Path := filepath.Join(s1Path, s2.Name())
 				subdirs3, err := ioutil.ReadDir(s2Path)
 				if err != nil {
@@ -125,7 +121,14 @@ func (s *defaultStorage) populateSessionStorage() error {
 						if err != nil {
 							return err
 						}
-						s.sessionStorage.registerExistingSession(serviceDesc, sessionID)
+						s.sessionStorage.registerExistingSession(
+							&schema.Session{
+								Description: &schema.SessionDescription{
+									ServiceInstance: s2.Name(),
+									ServiceType:     s1.Name(),
+									SessionId:       sessionID,
+								},
+							})
 					}
 				}
 			}

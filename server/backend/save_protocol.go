@@ -5,11 +5,12 @@ package backend
 import (
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/locator"
 	"github.com/memprofiler/memprofiler/server/metrics"
 	"github.com/memprofiler/memprofiler/server/storage"
-	"github.com/sirupsen/logrus"
 )
 
 // saveState implements state pattern for handling save requests
