@@ -1,23 +1,24 @@
 package filesystem
 
 import (
-	"bufio"
 	"bytes"
 	"context"
+	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	"path/filepath"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
+	"github.com/prometheus/tsdb/labels"
+	"github.com/sirupsen/logrus"
 )
 
 type defaultDataLoader struct {
+	tsdb   localStorage
 	codec  codec
 	sd     *schema.SessionDescription
-	fd     *os.File
 	logger logrus.FieldLogger
 	wg     *sync.WaitGroup
 }
@@ -27,20 +28,46 @@ const (
 )
 
 func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResult, error) {
-
 	// prepare bufferized channel for results
 	results := make(chan *storage.LoadResult, loadChanCapacity)
 
-	scanner := bufio.NewScanner(l.fd)
-	scanner.Split(bufio.ScanLines)
+	querier, err := l.tsdb.querier(context.Background(), 20, 30)
+	if err != nil {
+		return nil, err
+	}
+
+	allocObjectsSeriesSet, _ := querier.Select([]labels.Matcher{
+		labels.NewEqualMatcher(SessionLabelName, fmt.Sprintf("%v", l.sd.GetSessionId())),
+		labels.NewEqualMatcher(MetricTypeLabelName, fmt.Sprintf("%v", "AllocObjects")),
+	}...)
 
 	// scan records line by line
 	go func() {
 		defer close(results)
-		for scanner.Scan() {
-			if len(scanner.Bytes()) > 0 {
+		for allocObjectsSeriesSet.Next() {
+			series := allocObjectsSeriesSet.At()
+			labs := series.Labels()
+			var receiver schema.Callstack
+			err := l.codec.decode(labs.Get(MetaLabelName), &receiver)
+			seriesIterator := series.Iterator()
+			for seriesIterator.Next() {
+				writeTime, val := seriesIterator.At()
+				rr := &storage.LoadResult{
+					Measurement: &schema.Measurement{
+						Locations: []*schema.Location{
+							{
+								MemoryUsage: &schema.MemoryUsage{
+									AllocObjects: int64(val),
+								},
+								Callstack: &receiver,
+							},
+						},
+						ObservedAt: writeTime,
+					},
+					Err: err,
+				}
 				select {
-				case results <- l.loadMeasurement(scanner.Bytes()):
+				case results <- rr:
 				case <-ctx.Done():
 					return
 				}

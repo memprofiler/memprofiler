@@ -4,6 +4,7 @@ deps:
 
 PROTOBUF_VERSION=3.7.1
 PROTOBUF_DIR=/tmp/protoc-${PROTOBUF_VERSION}
+GOLANGCI_LINT_VERSION=1.16.0
 env:
 	# download protobuf release
 	wget -P /tmp https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip
@@ -31,8 +32,7 @@ env:
 
 	# install tools
 	go get -u -v golang.org/x/tools/cmd/stringer
-	# go get -u -v github.com/golangci/golangci-lint/cmd/golangci-lint (master is broken)
-
+	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b /usr/local/bin v${GOLANGCI_LINT_VERSION}
 
 generate:
 	protoc -I schema schema/*.proto  --go_out=plugins=grpc:schema

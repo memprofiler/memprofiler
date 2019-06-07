@@ -60,11 +60,13 @@ func newDataSaver(
 ) (storage.DataSaver, error) {
 
 	// open file to store records
-	filename := filepath.Join(subdirPath, "data")
-	fd, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE, filePermissions)
+	dataFile := filepath.Join(subdirPath, "data")
+	fd, err := os.OpenFile(dataFile, os.O_WRONLY|os.O_CREATE, filePermissions)
 	if err != nil {
 		return nil, err
 	}
+
+	// open file to store metadata
 
 	saver := &defaultDataSaver{
 		fd:          fd,

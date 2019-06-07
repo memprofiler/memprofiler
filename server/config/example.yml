@@ -1,9 +1,9 @@
-# Web REST API
-web:
+# Frontend GRPC API
+frontend:
   listen_endpoint: "localhost:46218"
 
-# GRPC API
-api:
+# Backend GRPC API
+backend:
   listen_endpoint: "localhost:46219"
 
 # storage
@@ -16,6 +16,7 @@ storage:
 metrics:
   # list of averaging intervals
   averaging_windows:
+    - 3s    # 3 seconds
     - 30s   # 30 seconds
     - 5m    # 5 minutes
 

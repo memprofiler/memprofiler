@@ -10,7 +10,7 @@ import (
 	"github.com/memprofiler/memprofiler/utils"
 )
 
-func main() {
+func Example() {
 	// prepare client configuration
 	cfg := &client.Config{
 		// server address
@@ -34,7 +34,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer profiler.Quit()
+	profiler.Start()
+	defer profiler.Stop()
 
 	// ...
 }

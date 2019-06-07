@@ -9,6 +9,8 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	duration "github.com/golang/protobuf/ptypes/duration"
 	grpc "google.golang.org/grpc"
+	codes "google.golang.org/grpc/codes"
+	status "google.golang.org/grpc/status"
 	math "math"
 )
 
@@ -682,6 +684,23 @@ type MemprofilerFrontendServer interface {
 	GetSessions(context.Context, *GetSessionsRequest) (*GetSessionsResponse, error)
 	// SubscribeForSession returns the stream of session updates with fresh trend values, if it's still alive
 	SubscribeForSession(*SubscribeForSessionRequest, MemprofilerFrontend_SubscribeForSessionServer) error
+}
+
+// UnimplementedMemprofilerFrontendServer can be embedded to have forward compatible implementations.
+type UnimplementedMemprofilerFrontendServer struct {
+}
+
+func (*UnimplementedMemprofilerFrontendServer) GetServices(ctx context.Context, req *GetServicesRequest) (*GetServicesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetServices not implemented")
+}
+func (*UnimplementedMemprofilerFrontendServer) GetInstances(ctx context.Context, req *GetInstancesRequest) (*GetInstancesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetInstances not implemented")
+}
+func (*UnimplementedMemprofilerFrontendServer) GetSessions(ctx context.Context, req *GetSessionsRequest) (*GetSessionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSessions not implemented")
+}
+func (*UnimplementedMemprofilerFrontendServer) SubscribeForSession(req *SubscribeForSessionRequest, srv MemprofilerFrontend_SubscribeForSessionServer) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribeForSession not implemented")
 }
 
 func RegisterMemprofilerFrontendServer(s *grpc.Server, srv MemprofilerFrontendServer) {
