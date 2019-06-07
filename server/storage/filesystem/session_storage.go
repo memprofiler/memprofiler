@@ -58,7 +58,7 @@ func (ss *defaultSessionStorage) registerNextSession(desc *schema.ServiceDescrip
 	} else {
 		// case 2: append session to list of existing sessions, increment counter
 		session.Description.SessionId = sessions[len(sessions)-1].Description.SessionId + 1
-		sessions = append(sessions, session)
+		ss.values[desc.GetServiceType()][desc.GetServiceInstance()] = append(sessions, session)
 	}
 
 	return session
