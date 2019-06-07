@@ -4,7 +4,7 @@ client:
     service_type: reporter
     service_instance: test
   periodicity: 1s
-  verbose: true
+  verbose: false
 
 scenario:
   steps:

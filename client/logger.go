@@ -21,5 +21,5 @@ func (w logrusWrapper) Error(msg string)   { w.logger.Error(msg) }
 
 // LoggerFromLogrus wraps logrus' logger instance
 func LoggerFromLogrus(src logrus.FieldLogger) Logger {
-	return &logrusWrapper{logger: src}
+	return &logrusWrapper{logger: src.WithField("side", "profiler")}
 }

@@ -15,7 +15,7 @@ install:
   - make build
 
 script:
-  # - make lint
+  - make lint
   - make test
   - make integration_test
 

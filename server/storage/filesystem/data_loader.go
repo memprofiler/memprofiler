@@ -5,13 +5,13 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"path/filepath"
 	"sync"
 
-	"path/filepath"
+	"github.com/sirupsen/logrus"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
-	"github.com/sirupsen/logrus"
 )
 
 type defaultDataLoader struct {

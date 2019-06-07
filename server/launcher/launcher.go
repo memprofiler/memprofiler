@@ -23,6 +23,7 @@ func (l *Launcher) Start() {
 	l.services, err = runServices(l.locator, l.cfg, l.errChan)
 	if err != nil {
 		l.errChan <- err
+		return
 	}
 	l.services.start(l.logger)
 }
@@ -82,12 +83,14 @@ func runServices(
 	)
 
 	// 1. GRPC Backend
+	locator.Logger.Debug("Starting backend server")
 	ss[labelBackend], err = backend.NewServer(cfg.Backend, locator, errChan)
 	if err != nil {
 		return nil, err
 	}
 
 	// 2. Frontend
+	locator.Logger.Debug("Starting frontend server")
 	ss[labelFrontend], err = frontend.NewServer(cfg.Frontend, locator, errChan)
 	if err != nil {
 		return nil, err

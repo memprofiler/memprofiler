@@ -16,10 +16,10 @@ track. Memprofiler aims to be an open source equivalent of
 
 ## Getting started
 
-Memprofiler is a client-server application. Memprofiler client is embedded 
-into your Go service and streams memory usage reports to the Memprofiler server. 
-Memprofiler server stores reports and performs some computations on the 
-data stream to turn it in a small set of aggregated metrics. 
+Memprofiler is a client-server application. Memprofiler client is embedded
+into your Go service and streams memory usage reports to the Memprofiler server.
+Memprofiler server stores reports and performs some computations on the
+data stream to turn it in a small set of aggregated metrics.
 User will be able to interact with Memprofiler server via simple Web UI.
 
 ![Components](https://imgbbb.com/images/2019/04/06/memprofiler.jpg)
@@ -65,6 +65,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+    profiler.Start()
 	defer profiler.Quit()
 
 	// ...

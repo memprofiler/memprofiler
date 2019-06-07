@@ -8,6 +8,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/memprofiler/memprofiler/server/common"
+
 	"github.com/golang/protobuf/ptypes"
 	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
@@ -16,19 +18,22 @@ import (
 	"github.com/memprofiler/memprofiler/utils"
 )
 
+var _ Profiler = (*defaultProfiler)(nil)
+
 // Profiler should keep working during whole application lifetime
 type Profiler interface {
-	Quit()
+	common.Service
 }
 
 type defaultProfiler struct {
-	stream  schema.MemprofilerBackend_SaveReportClient
-	limiter *rate.Limiter
-	cfg     *Config
-	logger  Logger
-	wg      sync.WaitGroup
-	ctx     context.Context
-	cancel  context.CancelFunc
+	stream     schema.MemprofilerBackend_SaveReportClient
+	limiter    *rate.Limiter
+	clientConn *grpc.ClientConn
+	cfg        *Config
+	logger     Logger
+	wg         sync.WaitGroup
+	ctx        context.Context
+	cancel     context.CancelFunc
 }
 
 func (p *defaultProfiler) loop() {
@@ -36,14 +41,24 @@ func (p *defaultProfiler) loop() {
 
 	for {
 		if err := p.limiter.Wait(p.ctx); err != nil {
-			p.logger.Error(err.Error())
-			return
+			// time is out
+			break
 		}
 
+		// create memory report and stream it to server
 		if err := p.report(); err != nil {
 			p.logger.Error(err.Error())
 		}
 	}
+
+	// close stream explicitly
+	msg, err := p.stream.CloseAndRecv()
+	if err != nil {
+		p.logger.Error(fmt.Sprintf("Failed to close stream: %v", err))
+	} else {
+		p.logger.Debug(fmt.Sprintf("Final stream result: %v", msg))
+	}
+
 }
 
 // report gets new measurement and sends it to GRPC stream
@@ -114,20 +129,52 @@ func (p *defaultProfiler) maybeDumpMessage(mm *schema.Measurement) {
 		if err != nil {
 			p.logger.Error(fmt.Sprintf("Failed to marshal measurement: %s", err.Error()))
 		} else {
-			p.logger.Debug(string(dump))
+			p.logger.Debug("Measurement sent: " + string(dump))
 		}
 	}
 }
 
-func (p *defaultProfiler) Quit() {
+func (p *defaultProfiler) Start() {
+	p.wg.Add(1)
+	go p.loop()
+}
+
+func (p *defaultProfiler) Stop() {
 	p.cancel()
 	p.wg.Wait()
-	msg, err := p.stream.CloseAndRecv()
-	if err != nil {
-		p.logger.Error(fmt.Sprintf("Failed to close stream: %v", err))
-	} else {
-		p.logger.Debug(fmt.Sprintf("Final stream result: %v", msg))
+	if err := p.clientConn.Close(); err != nil {
+		p.logger.Error("Failed to close connection: " + err.Error())
 	}
+}
+
+// NewProfiler launches new instance of memory profiler
+func NewProfiler(logger Logger, cfg *Config) (Profiler, error) {
+
+	// prepare GRPC client
+	clientConn, err := grpc.Dial(cfg.ServerEndpoint, grpc.WithInsecure(), grpc.WithBlock())
+	if err != nil {
+		return nil, err
+	}
+
+	stream, err := makeStream(clientConn, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	p := &defaultProfiler{
+		stream:     stream,
+		limiter:    rate.NewLimiter(rate.Every(cfg.Periodicity.Duration), 1),
+		logger:     logger,
+		clientConn: clientConn,
+		cfg:        cfg,
+		ctx:        ctx,
+		cancel:     cancel,
+		wg:         sync.WaitGroup{},
+	}
+
+	return p, nil
 }
 
 const profileRecords = 256
@@ -152,43 +199,13 @@ func getMemProfileRecords() []runtime.MemProfileRecord {
 	return rs
 }
 
-// NewProfiler launches new instance of memory profiler
-func NewProfiler(logger Logger, cfg *Config) (Profiler, error) {
-	ctx, cancel := context.WithCancel(context.Background())
-
-	stream, err := makeStream(ctx, cfg)
-	if err != nil {
-		cancel()
-		return nil, err
-	}
-
-	p := &defaultProfiler{
-		stream:  stream,
-		limiter: rate.NewLimiter(rate.Every(cfg.Periodicity.Duration), 1),
-		logger:  logger,
-		cfg:     cfg,
-		ctx:     ctx,
-		cancel:  cancel,
-		wg:      sync.WaitGroup{},
-	}
-	p.wg.Add(1)
-	go p.loop()
-
-	return p, nil
-}
-
 // makeStream initializes GRPC stream
-func makeStream(ctx context.Context, cfg *Config) (schema.MemprofilerBackend_SaveReportClient, error) {
+func makeStream(clientConn *grpc.ClientConn, cfg *Config) (schema.MemprofilerBackend_SaveReportClient, error) {
 
-	// prepare GRPC client
-	conn, err := grpc.Dial(cfg.ServerEndpoint, grpc.WithInsecure())
-	if err != nil {
-		return nil, err
-	}
-	c := schema.NewMemprofilerBackendClient(conn)
+	c := schema.NewMemprofilerBackendClient(clientConn)
 
 	// open client-side streaming
-	stream, err := c.SaveReport(ctx)
+	stream, err := c.SaveReport(context.Background())
 	if err != nil {
 		return nil, err
 	}
