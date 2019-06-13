@@ -123,16 +123,18 @@ func NewLocationsIter(tsdb localTSDB.Storage, codec codec, sessionLabel labels.L
 		metaLabel := labels.Label{Name: MetaLabelName, Value: m}
 		locationsIterMap[m] = NewMemoryUsageIterator(querier, sessionLabel, metaLabel)
 	}
-	return &LocationsIter{
+	li := &LocationsIter{
 		querier:          querier,
-		currentTime:      0,
+		currentTime:      time.Now().Unix(),
 		locationsIterMap: locationsIterMap,
 		codec:            codec,
-	}, nil
+	}
+	return li, nil
 }
 
 func (i *LocationsIter) Next() bool {
 	if len(i.locationsIterMap) > 0 {
+		i.updateMin()
 		return true
 	}
 	return false
@@ -143,7 +145,7 @@ func (i *LocationsIter) At() *schema.Measurement {
 		ObservedAt: &timestamp.Timestamp{Seconds: i.currentTime},
 		Locations:  i.currentLocations(),
 	}
-	i.updateMin()
+	i.currentTime = time.Now().Unix()
 	return m
 }
 
@@ -222,6 +224,7 @@ func (i *MemoryUsageIterator) Next() bool {
 		if !(t1 == t2 && t2 == t3 && t3 == t4) {
 			panic("HOW and WHY")
 		}
+		i.currentTime = t1
 
 		i.currentMemUsage = &schema.MemoryUsage{
 			AllocObjects: int64(allocObjects),

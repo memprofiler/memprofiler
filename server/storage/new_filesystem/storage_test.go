@@ -2,13 +2,11 @@ package filesystem
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
 
-	"github.com/golang/protobuf/ptypes"
-
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
@@ -18,8 +16,6 @@ import (
 
 // simple integration test for file-based storage
 func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
-	fmt.Printf("Hello!")
-
 	logger := logrus.New()
 	logger.Out = os.Stdout
 
@@ -38,7 +34,6 @@ func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
 		SyncWrite: false,
 	}
 
-	fmt.Printf("Hello!")
 	s, err := NewStorage(logger, cfg)
 	assert.NotNil(t, s)
 	assert.NoError(t, err)
@@ -54,7 +49,7 @@ func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
 
 	input := []*schema.Measurement{
 		{
-			ObservedAt: ptypes.TimestampNow(),
+			ObservedAt: &timestamp.Timestamp{Seconds: 1},
 			Locations: []*schema.Location{
 				{
 					MemoryUsage: &schema.MemoryUsage{AllocBytes: 1},
@@ -66,7 +61,7 @@ func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
 			},
 		},
 		{
-			ObservedAt: ptypes.TimestampNow(),
+			ObservedAt: &timestamp.Timestamp{Seconds: 2},
 			Locations: []*schema.Location{
 				{
 					MemoryUsage: &schema.MemoryUsage{AllocBytes: 2},
