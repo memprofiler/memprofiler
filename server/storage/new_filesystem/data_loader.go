@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
-	"github.com/golang/protobuf/ptypes/timestamp"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/prometheus/tsdb"
 	"github.com/prometheus/tsdb/labels"
 	"github.com/sirupsen/logrus"
@@ -141,8 +141,9 @@ func (i *LocationsIter) Next() bool {
 }
 
 func (i *LocationsIter) At() *schema.Measurement {
+	t, _ := ptypes.TimestampProto(time.Unix(i.currentTime, 0))
 	m := &schema.Measurement{
-		ObservedAt: &timestamp.Timestamp{Seconds: i.currentTime},
+		ObservedAt: t,
 		Locations:  i.currentLocations(),
 	}
 	i.currentTime = time.Now().Unix()

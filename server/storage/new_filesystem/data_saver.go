@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/go-kit/kit/log"
+	"github.com/golang/protobuf/ptypes"
 	"github.com/prometheus/tsdb/labels"
 
 	"github.com/memprofiler/memprofiler/schema"
@@ -27,12 +28,16 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 	var (
 		sessionLabel = labels.Label{Name: SessionLabelName, Value: fmt.Sprintf("%v", s.SessionID())}
 
-		time     = mm.GetObservedAt().GetSeconds()
 		location = mm.GetLocations()
 
 		wg      sync.WaitGroup
 		errChan = make(chan error, len(location))
 	)
+
+	time, err := ptypes.Timestamp(mm.GetObservedAt())
+	if err != nil {
+		return err
+	}
 
 	for _, l := range location {
 		wg.Add(1)
@@ -54,7 +59,7 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 				{labels.Labels{sessionLabel, metaLabel, FreeObjectsLabel}, float64(mu.GetFreeObjects())},
 			}
 			for _, mi := range measurementsInfo {
-				_, err = appender.Add(mi.Labels, time, mi.Value)
+				_, err = appender.Add(mi.Labels, time.Unix(), mi.Value)
 				if err != nil {
 					errChan <- err
 					return
