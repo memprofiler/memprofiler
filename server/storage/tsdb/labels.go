@@ -1,4 +1,4 @@
-package filesystem
+package tsdb
 
 import (
 	"github.com/prometheus/tsdb/labels"

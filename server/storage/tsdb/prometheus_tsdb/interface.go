@@ -1,4 +1,4 @@
-package tsdb
+package prometheus_tsdb
 
 import (
 	"io"
@@ -6,7 +6,7 @@ import (
 	"github.com/prometheus/tsdb"
 )
 
-// Storage wrap tsdb as a point for possible expansion
+// Storage wrap prometheus tsdb as a point for possible expansion
 type Storage interface {
 	io.Closer
 

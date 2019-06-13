@@ -1,4 +1,4 @@
-package tsdb
+package prometheus_tsdb
 
 import (
 	"github.com/go-kit/kit/log"

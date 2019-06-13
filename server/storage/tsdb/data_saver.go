@@ -1,4 +1,4 @@
-package filesystem
+package tsdb
 
 import (
 	"fmt"
@@ -12,16 +12,17 @@ import (
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
-	"github.com/memprofiler/memprofiler/server/storage/tsdb"
+	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus_tsdb"
 )
 
 var _ storage.DataSaver = (*defaultDataSaver)(nil)
 
-// defaultDataSaver puts records to a tsdb
+// defaultDataSaver puts records to a prometheus_tsdb
 type defaultDataSaver struct {
-	storage     tsdb.Storage
+	storage     prometheus_tsdb.Storage
 	codec       codec
 	sessionDesc *schema.SessionDescription
+	wg          *sync.WaitGroup
 }
 
 func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
@@ -86,6 +87,7 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 }
 
 func (s *defaultDataSaver) Close() error {
+	defer s.wg.Done()
 	return s.storage.Close()
 }
 
@@ -95,6 +97,7 @@ func newDataSaver(
 	subDirPath string,
 	sessionDesc *schema.SessionDescription,
 	codec codec,
+	wg *sync.WaitGroup,
 ) (storage.DataSaver, error) {
 	var (
 		writer = log.NewSyncWriter(os.Stdout)
@@ -102,7 +105,7 @@ func newDataSaver(
 	)
 
 	// create storage
-	stor, err := tsdb.OpenStorage(subDirPath, logger)
+	stor, err := prometheus_tsdb.OpenStorage(subDirPath, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +114,7 @@ func newDataSaver(
 		storage:     stor,
 		codec:       codec,
 		sessionDesc: sessionDesc,
+		wg:          wg,
 	}
 
 	return saver, nil

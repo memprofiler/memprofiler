@@ -1,4 +1,4 @@
-package filesystem
+package tsdb
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
-	localTSDB "github.com/memprofiler/memprofiler/server/storage/tsdb"
+	localTSDB "github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus_tsdb"
 )
 
 type defaultDataLoader struct {
@@ -43,6 +43,7 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 	// prepare bufferized channel for results
 	results := make(chan *storage.LoadResult, loadChanCapacity)
 	go func() {
+		defer close(results)
 		for li.Next() {
 			m := &storage.LoadResult{Measurement: li.At(), Err: err}
 			select {
@@ -51,7 +52,6 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 				break
 			}
 		}
-		close(results)
 	}()
 
 	return results, nil

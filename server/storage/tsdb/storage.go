@@ -1,4 +1,4 @@
-package filesystem
+package tsdb
 
 import (
 	"context"
@@ -60,7 +60,7 @@ func (s *defaultStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (s
 		}
 	}
 
-	return newDataSaver(subdirPath, session.GetDescription(), s.codec)
+	return newDataSaver(subdirPath, session.GetDescription(), s.codec, &s.wg)
 }
 
 func (s *defaultStorage) NewDataLoader(sd *schema.SessionDescription) (storage.DataLoader, error) {
