@@ -2,6 +2,7 @@ package filesystem
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -17,6 +18,7 @@ import (
 
 // simple integration test for file-based storage
 func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
+	fmt.Printf("Hello!")
 
 	logger := logrus.New()
 	logger.Out = os.Stdout
@@ -36,6 +38,7 @@ func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
 		SyncWrite: false,
 	}
 
+	fmt.Printf("Hello!")
 	s, err := NewStorage(logger, cfg)
 	assert.NotNil(t, s)
 	assert.NoError(t, err)

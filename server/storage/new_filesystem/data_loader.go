@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/go-kit/kit/log"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/prometheus/tsdb"
 	"github.com/prometheus/tsdb/labels"
@@ -22,7 +22,6 @@ type defaultDataLoader struct {
 	storage localTSDB.Storage
 	codec   codec
 	sd      *schema.SessionDescription
-	fd      *os.File
 	logger  logrus.FieldLogger
 	wg      *sync.WaitGroup
 }
@@ -52,6 +51,7 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 				break
 			}
 		}
+		close(results)
 	}()
 
 	return results, nil
@@ -59,7 +59,7 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 
 func (l *defaultDataLoader) Close() error {
 	defer l.wg.Done()
-	return l.fd.Close()
+	return nil
 }
 
 func newDataLoader(
@@ -71,25 +71,28 @@ func newDataLoader(
 ) (storage.DataLoader, error) {
 
 	// open file to load records
-	filename := filepath.Join(subdirPath, "data")
-	fd, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-
 	contextLogger := logger.WithFields(logrus.Fields{
 		"type":        sessionDesc.GetServiceType(),
 		"instance":    sessionDesc.GetServiceInstance(),
 		"sessionDesc": storage.SessionIDToString(sessionDesc.GetSessionId()),
-		"measurement": filename,
 	})
+	var (
+		writer  = log.NewSyncWriter(os.Stdout)
+		logger2 = log.NewLogfmtLogger(writer)
+	)
+
+	// create storage
+	stor, err := localTSDB.OpenStorage(subdirPath, logger2)
+	if err != nil {
+		return nil, err
+	}
 
 	loader := &defaultDataLoader{
-		sd:     sessionDesc,
-		fd:     fd,
-		codec:  codec,
-		logger: contextLogger,
-		wg:     wg,
+		storage: stor,
+		sd:      sessionDesc,
+		codec:   codec,
+		logger:  contextLogger,
+		wg:      wg,
 	}
 	return loader, nil
 }
