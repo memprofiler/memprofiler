@@ -33,11 +33,11 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 	v := mm.GetLocations()
 	for _, v := range v {
 		mu := v.GetMemoryUsage()
-		ss, err := s.codec.encode(v.GetCallstack())
+		callstack, err := s.codec.encode(v.GetCallstack())
 		if err != nil {
 			return err
 		}
-		metaLabel := labels.Label{Name: MetaLabelName, Value: ss}
+		metaLabel := labels.Label{Name: MetaLabelName, Value: callstack}
 
 		allocBytesLabels := labels.Labels{sessionLabel, metaLabel, AllocBytesLabel}
 		_, err = s.tsdb.appender().Add(allocBytesLabels, t, float64(mu.GetAllocBytes()))

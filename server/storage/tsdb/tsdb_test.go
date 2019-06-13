@@ -1,127 +1,180 @@
 package tsdb
 
 import (
-	"context"
-	"fmt"
 	"os"
+	"sync"
 	"testing"
-	"time"
 
 	"github.com/go-kit/kit/log"
-	"github.com/prometheus/common/model"
 	"github.com/prometheus/tsdb/labels"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewLocalStorageReadWrite(t *testing.T) {
+// TestSimpleStorage test write and read from storage
+func TestSimpleStorage(t *testing.T) {
 	var (
-		testDir   = "/tmp/test"
-		labelSet1 = labels.Labels{
-			{Name: "test", Value: "test"},
+		testDir  = "/tmp/test"
+		writer   = log.NewSyncWriter(os.Stdout)
+		logger   = log.NewLogfmtLogger(writer)
+		labelSet = labels.Labels{
+			{Name: "test0", Value: "test0"},
 			{Name: "test1", Value: "test1"},
 			{Name: "test2", Value: "test2"},
-			{Name: "test3", Value: "test3"},
 		}
-		labelSet2 = labels.Labels{
-			{Name: "test", Value: "test"},
-			{Name: "test4", Value: "test4"},
-			{Name: "test5", Value: "test5"},
-			{Name: "test6", Value: "test6"},
+		data = map[int64]float64{
+			1: 100,
+			2: 200,
+			3: 300,
 		}
-		data1 = map[int64]float64{1000: 100, 2000: 200, 3000: 300}
-		data2 = map[int64]float64{1000: 100, 2000: 200, 3000: 300}
 	)
 
-	// create logger
-	writer := log.NewSyncWriter(os.Stdout)
-	logger := log.NewLogfmtLogger(writer)
-
-	// create db
-	db, err := Open(testDir, logger, nil, &Options{
-		// copy-past from tsdb examples
-		MinBlockDuration: model.Duration(24 * time.Hour),
-		MaxBlockDuration: model.Duration(24 * time.Hour),
-	})
+	// create storage
+	storage, err := OpenStorage(testDir, logger)
 	if err != nil {
 		assert.FailNowf(t, "can not open database: %v", err.Error())
 	}
-
+	// close and cleanup after test
 	defer func() {
-		err := db.Close()
+		err := storage.Close()
 		assert.NoError(t, err)
 		err = os.RemoveAll(testDir)
 		assert.NoError(t, err)
 	}()
 
-	localStore := newLocalStorage(db)
-	app := localStore.appender()
-
-	// write data1 for labelSet1
-	for k, v := range data1 {
-		l, err := app.Add(labelSet1, k, v)
-		assert.Equal(t, uint64(1), l)
+	// write data for labelSet
+	appender := storage.Appender()
+	for i := 1; i <= len(data); i++ {
+		_, err := appender.Add(labelSet, int64(i), data[int64(i)])
 		assert.NoError(t, err)
 	}
-
-	// write data2 for labelSet2
-	for k, v := range data2 {
-		_, err := app.Add(labelSet2, k, v)
-		//assert.Equal(t, uint64(1), l)
-		assert.NoError(t, err)
-	}
-
-	err = app.Commit()
+	err = appender.Commit()
 	assert.NoError(t, err)
 
-	// read data
-	querier, err := localStore.querier(context.Background(), 1100, 3000)
+	// read data with label0 (i.e. labelSet[0])
+	querier, err := storage.Querier(0, 4)
 	assert.NoError(t, err)
-	delete(data1, 10)
-	delete(data2, 10)
-
-	//lNames, err := querier.LabelNames()
-	//assert.NoError(t, err)
-	//
-	//for _, l := range labelSet1 {
-	//	assert.True(t, hasStringVal(l.Name, lNames))
-	//
-	//	lVals, err := querier.LabelValues(l.Name)
-	//	assert.NoError(t, err)
-	//	assert.Equal(t, lVals[0], l.Name)
-	//}
-	//
-	//for _, l := range labelSet2 {
-	//	assert.True(t, hasStringVal(l.Name, lNames))
-	//
-	//	lVals, err := querier.LabelValues(l.Name)
-	//	assert.NoError(t, err)
-	//	assert.Equal(t, lVals[0], l.Name)
-	//}
-
-	seriesSet, _ := querier.Select([]labels.Matcher{
-		labels.NewEqualMatcher("test", "test"),
+	seriesSet, err := querier.Select([]labels.Matcher{
+		labels.NewEqualMatcher(labelSet[0].Name, labelSet[0].Value),
 	}...)
-
+	assert.NoError(t, err)
 	for seriesSet.Next() {
 		series := seriesSet.At()
-		fmt.Printf("%v\n", series.Labels())
 		seriesIterator := series.Iterator()
 		for seriesIterator.Next() {
 			writeTime, val := seriesIterator.At()
-			fmt.Printf("%v-%v\n", writeTime, val)
-			//val, ok := data[writeTime]
-			//if !ok {
-			//	assert.Fail(t, "unexpected data: %v - %v", writeTime, val)
-			//}
+			// validate data, if data exist, delete it
+			val, ok := data[writeTime]
+			if !ok {
+				assert.Fail(t, "unexpected data: %v - %v", writeTime, val)
+			}
+			delete(data, writeTime)
 		}
 	}
+
+	// validate that all data found
+	assert.Equal(t, 0, len(data), "Not all data was returned")
 }
 
-func hasStringVal(val string, vals []string) bool {
-	for _, v := range vals {
-		if val == v {
-			return true
+// TestTwoLabelSetStorage test write and read from storage with filtering
+func TestTwoLabelSetStorage(t *testing.T) {
+	var (
+		testDir = "/tmp/test"
+		writer  = log.NewSyncWriter(os.Stdout)
+		logger  = log.NewLogfmtLogger(writer)
+
+		labelSets = []labels.Labels{
+			{
+				{Name: "meta", Value: "labelSet1"},
+				{Name: "test1", Value: "test1"},
+				{Name: "test2", Value: "test2"},
+			},
+			{
+				{Name: "meta", Value: "labelSet2"},
+				{Name: "test1", Value: "test1"},
+				{Name: "test2", Value: "test2"},
+			},
 		}
+		dataSets = []map[int64]float64{
+			{
+				1: 100,
+				2: 200,
+				3: 300,
+			},
+			{
+				1: 101,
+				2: 202,
+				3: 303,
+			},
+		}
+	)
+
+	// create storage
+	storage, err := OpenStorage(testDir, logger)
+	if err != nil {
+		assert.FailNowf(t, "can not open database: %v", err.Error())
 	}
-	return false
+	// close and cleanup after test
+	defer func() {
+		err := storage.Close()
+		assert.NoError(t, err)
+		err = os.RemoveAll(testDir)
+		assert.NoError(t, err)
+	}()
+
+	var wg sync.WaitGroup
+	// write data for labelSets
+	for i := 0; i < 2; i++ {
+		var (
+			dataSet  = dataSets[i]
+			labelSet = labelSets[i]
+		)
+		wg.Add(1)
+		go func() {
+			appender := storage.Appender()
+			defer wg.Done()
+			for j := 1; j <= len(dataSet); j++ {
+				_, err := appender.Add(labelSet, int64(j), dataSet[int64(j)])
+				assert.NoError(t, err)
+			}
+			err = appender.Commit()
+			assert.NoError(t, err)
+		}()
+	}
+	wg.Wait()
+
+	for i := 0; i < 2; i++ {
+		var (
+			dataSet  = dataSets[i]
+			labelSet = labelSets[i]
+		)
+		// read data with label0 (i.e. labelSet[0])
+		querier, err := storage.Querier(0, 4)
+
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			assert.NoError(t, err)
+			seriesSet, err := querier.Select([]labels.Matcher{
+				labels.NewEqualMatcher(labelSet[0].Name, labelSet[0].Value),
+			}...)
+			assert.NoError(t, err)
+			for seriesSet.Next() {
+				series := seriesSet.At()
+				seriesIterator := series.Iterator()
+				for seriesIterator.Next() {
+					writeTime, val := seriesIterator.At()
+					// validate data, if data exist, delete it
+					val, ok := dataSet[writeTime]
+					if !ok {
+						assert.Fail(t, "unexpected data: %v - %v", writeTime, val)
+					}
+					delete(dataSet, writeTime)
+				}
+			}
+
+			// validate that all data found
+			assert.Equal(t, 0, len(dataSet), "Not all data was returned")
+		}()
+	}
+	wg.Wait()
 }
