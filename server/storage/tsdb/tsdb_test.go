@@ -1,6 +1,7 @@
 package tsdb
 
 import (
+	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -141,6 +142,10 @@ func TestTwoLabelSetStorage(t *testing.T) {
 		}()
 	}
 	wg.Wait()
+
+	querier, err := storage.Querier(0, 4)
+	r, _ := querier.LabelValues("meta")
+	fmt.Printf("\n%v\n", r)
 
 	for i := 0; i < 2; i++ {
 		var (
