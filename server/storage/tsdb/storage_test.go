@@ -14,12 +14,132 @@ import (
 	"github.com/memprofiler/memprofiler/server/config"
 )
 
-// simple integration test for file-based storage
-func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
+// TestStorageWriteReadSimpleLocations simple integration test for tsdb-based storage for simple locations
+func TestStorageWriteReadSimpleLocations(t *testing.T) {
+	input := []*schema.Measurement{
+		{
+			ObservedAt: &timestamp.Timestamp{Seconds: 1},
+			Locations: []*schema.Location{
+				{
+					MemoryUsage: &schema.MemoryUsage{AllocBytes: 1},
+					Callstack: &schema.Callstack{
+						Id:     "abcd",
+						Frames: []*schema.StackFrame{{Name: "a", File: "b.go", Line: 1}},
+					},
+				},
+			},
+		},
+		{
+			ObservedAt: &timestamp.Timestamp{Seconds: 2},
+			Locations: []*schema.Location{
+				{
+					MemoryUsage: &schema.MemoryUsage{AllocBytes: 2},
+					Callstack: &schema.Callstack{
+						Id:     "edfg",
+						Frames: []*schema.StackFrame{{Name: "b", File: "c.go", Line: 2}},
+					},
+				},
+			},
+		},
+	}
+	testTemplate(t, input, input)
+}
+
+// TestStorageWriteRead simple integration test for tsdb-based storage
+func TestStorageWriteRead(t *testing.T) {
+	input := []*schema.Measurement{
+		{
+			ObservedAt: &timestamp.Timestamp{Seconds: 1},
+			Locations: []*schema.Location{
+				{
+					MemoryUsage: &schema.MemoryUsage{AllocBytes: 1},
+					Callstack: &schema.Callstack{
+						Id:     "abcd",
+						Frames: []*schema.StackFrame{{Name: "a", File: "b.go", Line: 1}},
+					},
+				},
+				{
+					MemoryUsage: &schema.MemoryUsage{AllocBytes: 11},
+					Callstack: &schema.Callstack{
+						Id:     "edfg",
+						Frames: []*schema.StackFrame{{Name: "b", File: "b.go", Line: 2}},
+					},
+				},
+			},
+		},
+		{
+			ObservedAt: &timestamp.Timestamp{Seconds: 1},
+			Locations: []*schema.Location{
+				{
+					MemoryUsage: &schema.MemoryUsage{AllocBytes: 111},
+					Callstack: &schema.Callstack{
+						Id:     "hijk",
+						Frames: []*schema.StackFrame{{Name: "c", File: "c.go", Line: 3}},
+					},
+				},
+			},
+		},
+		{
+			ObservedAt: &timestamp.Timestamp{Seconds: 2},
+			Locations: []*schema.Location{
+				{
+					MemoryUsage: &schema.MemoryUsage{AllocBytes: 2},
+					Callstack: &schema.Callstack{
+						Id:     "lmno",
+						Frames: []*schema.StackFrame{{Name: "d", File: "d.go", Line: 4}},
+					},
+				},
+			},
+		},
+	}
+	output := []*schema.Measurement{
+		{
+			ObservedAt: &timestamp.Timestamp{Seconds: 1},
+			Locations: []*schema.Location{
+				{
+					MemoryUsage: &schema.MemoryUsage{AllocBytes: 1},
+					Callstack: &schema.Callstack{
+						Id:     "abcd",
+						Frames: []*schema.StackFrame{{Name: "a", File: "b.go", Line: 1}},
+					},
+				},
+				{
+					MemoryUsage: &schema.MemoryUsage{AllocBytes: 11},
+					Callstack: &schema.Callstack{
+						Id:     "edfg",
+						Frames: []*schema.StackFrame{{Name: "b", File: "b.go", Line: 2}},
+					},
+				},
+				{
+					MemoryUsage: &schema.MemoryUsage{AllocBytes: 111},
+					Callstack: &schema.Callstack{
+						Id:     "hijk",
+						Frames: []*schema.StackFrame{{Name: "c", File: "c.go", Line: 3}},
+					},
+				},
+			},
+		},
+		{
+			ObservedAt: &timestamp.Timestamp{Seconds: 2},
+			Locations: []*schema.Location{
+				{
+					MemoryUsage: &schema.MemoryUsage{AllocBytes: 2},
+					Callstack: &schema.Callstack{
+						Id:     "lmno",
+						Frames: []*schema.StackFrame{{Name: "d", File: "d.go", Line: 4}},
+					},
+				},
+			},
+		},
+	}
+	testTemplate(t, input, output)
+}
+
+func testTemplate(t *testing.T, input, expected []*schema.Measurement) {
 	logger := logrus.New()
 	logger.Out = os.Stdout
 
-	// create new s in tmp dir
+	// create new storage in tmp dir
 	dataDir, err := ioutil.TempDir("/tmp", "memprofiler")
 	assert.NoError(t, err)
 
@@ -47,33 +167,6 @@ func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, saver)
 
-	input := []*schema.Measurement{
-		{
-			ObservedAt: &timestamp.Timestamp{Seconds: 1},
-			Locations: []*schema.Location{
-				{
-					MemoryUsage: &schema.MemoryUsage{AllocBytes: 1},
-					Callstack: &schema.Callstack{
-						Id:     "abcd",
-						Frames: []*schema.StackFrame{{Name: "a", File: "b.go", Line: 1}},
-					},
-				},
-			},
-		},
-		{
-			ObservedAt: &timestamp.Timestamp{Seconds: 2},
-			Locations: []*schema.Location{
-				{
-					MemoryUsage: &schema.MemoryUsage{AllocBytes: 2},
-					Callstack: &schema.Callstack{
-						Id:     "edfg",
-						Frames: []*schema.StackFrame{{Name: "b", File: "c.go", Line: 2}},
-					},
-				},
-			},
-		},
-	}
-
 	for _, mm := range input {
 		err = saver.Save(mm)
 		assert.NoError(t, err)
@@ -95,7 +188,7 @@ func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
 	assert.NotNil(t, outChan)
 	assert.NoError(t, err)
 
-	output := make([]*schema.Measurement, 0, 2)
+	output := make([]*schema.Measurement, 0, len(expected))
 	for result := range outChan {
 		assert.NotNil(t, result.Measurement)
 		if !assert.NoError(t, result.Err) {
@@ -107,6 +200,6 @@ func TestDefaultStorage_Integration_Write_Read(t *testing.T) {
 	err = loader.Close()
 	assert.NoError(t, err)
 
-	assert.Equal(t, len(input), len(output))
-	assert.Equal(t, input, output)
+	assert.Equal(t, len(expected), len(output))
+	assert.Equal(t, expected, output)
 }
