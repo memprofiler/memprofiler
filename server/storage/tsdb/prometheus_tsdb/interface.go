@@ -6,8 +6,8 @@ import (
 	"github.com/prometheus/tsdb"
 )
 
-// Storage wrap prometheus tsdb as a point for possible expansion
-type Storage interface {
+// TSDB wrap prometheus tsdb as a point for possible expansion
+type TSDB interface {
 	io.Closer
 
 	// Appender adds data to storage

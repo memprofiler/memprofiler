@@ -5,25 +5,29 @@ import (
 	"github.com/prometheus/tsdb"
 )
 
-var _ Storage = (*defaultStorage)(nil)
+var _ TSDB = (*defaultTSDB)(nil)
 
-type defaultStorage struct {
+type defaultTSDB struct {
 	db *tsdb.DB
 }
 
-func (s *defaultStorage) Close() error {
+// Close close tsdb
+func (s *defaultTSDB) Close() error {
 	return s.db.Close()
 }
 
-func (s *defaultStorage) Appender() tsdb.Appender {
+// Appender adds data to storage
+func (s *defaultTSDB) Appender() tsdb.Appender {
 	return s.db.Appender()
 }
 
-func (s *defaultStorage) Querier(mint, maxt int64) (tsdb.Querier, error) {
+// Querier query data from storage
+func (s *defaultTSDB) Querier(mint, maxt int64) (tsdb.Querier, error) {
 	return s.db.Querier(mint, maxt)
 }
 
-func (s *defaultStorage) StartTime() int64 {
+// StartTime return lowest time in storage
+func (s *defaultTSDB) StartTime() int64 {
 	var startTime int64
 
 	if len(s.db.Blocks()) > 0 {
@@ -35,12 +39,14 @@ func (s *defaultStorage) StartTime() int64 {
 	return startTime
 }
 
-func OpenStorage(dir string, l log.Logger) (Storage, error) {
+// OpenTSDB open tsdb in specified dir
+func OpenTSDB(dir string, l log.Logger) (TSDB, error) {
 	db, err := tsdb.Open(dir, l, nil, tsdb.DefaultOptions)
 	if err != nil {
 		return nil, err
 	}
-	return &defaultStorage{
+
+	return &defaultTSDB{
 		db: db,
 	}, nil
 }

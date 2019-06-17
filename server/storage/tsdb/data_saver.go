@@ -19,17 +19,17 @@ var _ storage.DataSaver = (*defaultDataSaver)(nil)
 
 // defaultDataSaver puts records to a prometheus_tsdb
 type defaultDataSaver struct {
-	storage     prometheus_tsdb.Storage
+	storage     prometheus_tsdb.TSDB
 	codec       codec
 	sessionDesc *schema.SessionDescription
 	wg          *sync.WaitGroup
 }
 
+// Save store Measurement to TSDB
 func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 	var (
 		sessionLabel = labels.Label{Name: SessionLabelName, Value: fmt.Sprintf("%v", s.SessionID())}
-
-		location = mm.GetLocations()
+		location     = mm.GetLocations()
 
 		wg      sync.WaitGroup
 		errChan = make(chan error, len(location))
@@ -86,12 +86,16 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 	return nil
 }
 
+// Close close data saver
 func (s *defaultDataSaver) Close() error {
 	defer s.wg.Done()
 	return s.storage.Close()
 }
 
-func (s *defaultDataSaver) SessionID() storage.SessionID { return s.sessionDesc.GetSessionId() }
+// SessionID gets session identifier
+func (s *defaultDataSaver) SessionID() storage.SessionID {
+	return s.sessionDesc.GetSessionId()
+}
 
 func newDataSaver(
 	subDirPath string,
@@ -99,13 +103,14 @@ func newDataSaver(
 	codec codec,
 	wg *sync.WaitGroup,
 ) (storage.DataSaver, error) {
+	// TODO: wrap to logrus interface
 	var (
 		writer = log.NewSyncWriter(os.Stdout)
 		logger = log.NewLogfmtLogger(writer)
 	)
 
 	// create storage
-	stor, err := prometheus_tsdb.OpenStorage(subDirPath, logger)
+	stor, err := prometheus_tsdb.OpenTSDB(subDirPath, logger)
 	if err != nil {
 		return nil, err
 	}

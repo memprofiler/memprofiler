@@ -30,7 +30,7 @@ func TestSimpleStorage(t *testing.T) {
 	)
 
 	// create storage
-	storage, err := OpenStorage(testDir, logger)
+	storage, err := OpenTSDB(testDir, logger)
 	if err != nil {
 		assert.FailNowf(t, "can not open database: %v", err.Error())
 	}
@@ -43,7 +43,7 @@ func TestSimpleStorage(t *testing.T) {
 	}()
 
 	// write data for labelSet
-	appender := Appender()
+	appender := storage.Appender()
 	for i := 1; i <= len(data); i++ {
 		_, err := appender.Add(labelSet, int64(i), data[int64(i)])
 		assert.NoError(t, err)
@@ -52,7 +52,7 @@ func TestSimpleStorage(t *testing.T) {
 	assert.NoError(t, err)
 
 	// read data with label0 (i.e. labelSet[0])
-	querier, err := Querier(0, 4)
+	querier, err := storage.Querier(0, 4)
 	assert.NoError(t, err)
 	seriesSet, err := querier.Select([]labels.Matcher{
 		labels.NewEqualMatcher(labelSet[0].Name, labelSet[0].Value),
@@ -110,7 +110,7 @@ func TestTwoLabelSetStorage(t *testing.T) {
 	)
 
 	// create storage
-	storage, err := OpenStorage(testDir, logger)
+	storage, err := OpenTSDB(testDir, logger)
 	if err != nil {
 		assert.FailNowf(t, "can not open database: %v", err.Error())
 	}
@@ -131,7 +131,7 @@ func TestTwoLabelSetStorage(t *testing.T) {
 		)
 		wg.Add(1)
 		go func() {
-			appender := Appender()
+			appender := storage.Appender()
 			defer wg.Done()
 			for j := 1; j <= len(dataSet); j++ {
 				_, err := appender.Add(labelSet, int64(j), dataSet[int64(j)])
@@ -143,7 +143,7 @@ func TestTwoLabelSetStorage(t *testing.T) {
 	}
 	wg.Wait()
 
-	querier, err := Querier(0, 4)
+	querier, err := storage.Querier(0, 4)
 	r, _ := querier.LabelValues("meta")
 	fmt.Printf("\n%v\n", r)
 
@@ -153,7 +153,7 @@ func TestTwoLabelSetStorage(t *testing.T) {
 			labelSet = labelSets[i]
 		)
 		// read data with label0 (i.e. labelSet[0])
-		querier, err := Querier(0, 4)
+		querier, err := storage.Querier(0, 4)
 
 		wg.Add(1)
 		go func() {
