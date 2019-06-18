@@ -25,7 +25,7 @@ var _ storage.Storage = (*defaultStorage)(nil)
 type defaultStorage struct {
 	sessionStorage
 	codec  codec
-	cfg    *config.FilesystemStorageConfig
+	cfg    *config.TSDBStorageConfig
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -136,7 +136,7 @@ func (s *defaultStorage) populateSessionStorage() error {
 }
 
 // NewStorage builds new storage that keeps measurements in separate files
-func NewStorage(logger logrus.FieldLogger, cfg *config.FilesystemStorageConfig) (storage.Storage, error) {
+func NewStorage(logger logrus.FieldLogger, cfg *config.TSDBStorageConfig) (storage.Storage, error) {
 
 	// create data directory if not exists
 	if _, err := os.Stat(cfg.DataDir); err != nil {

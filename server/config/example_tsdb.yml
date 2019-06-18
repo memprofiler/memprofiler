@@ -1,0 +1,24 @@
+# Frontend GRPC API
+frontend:
+  listen_endpoint: "localhost:46218"
+
+# Backend GRPC API
+backend:
+  listen_endpoint: "localhost:46219"
+
+# storage
+storage:
+  tsdb:
+    data_dir: "/tmp/memprofiler"
+
+# metrics
+metrics:
+  # list of averaging intervals
+  averaging_windows:
+    - 3s    # 3 seconds
+    - 30s   # 30 seconds
+    - 5m    # 5 minutes
+
+# logging
+logging:
+  level: "debug"

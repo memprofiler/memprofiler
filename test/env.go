@@ -3,7 +3,6 @@ package test
 import (
 	"context"
 	"fmt"
-	"go/build"
 	"path/filepath"
 	"sync"
 	"time"
@@ -53,15 +52,14 @@ func (e *env) Stop() {
 	e.wg.Wait()
 }
 
-func newEnv() (*env, error) {
+func newEnv(projectPath, serverConfigPath string) (*env, error) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	var (
-		err         error
-		errChan     = make(chan error, 16) // FIXME: hopefully large enough, but try to determine it better
-		projectPath = filepath.Join(build.Default.GOPATH, "src/github.com/memprofiler/memprofiler")
-		l           = &env{
+		err     error
+		errChan = make(chan error, 16) // FIXME: hopefully large enough, but try to determine it better
+		l       = &env{
 			logger: newLogger(),
 			ctx:    ctx,
 			cancel: cancel,
@@ -85,8 +83,7 @@ func newEnv() (*env, error) {
 
 	// run memprofiler server
 	l.logger.Info("Starting memprofiler server")
-	serverCfgPath := filepath.Join(projectPath, "server/config/example.yml")
-	l.server, l.serverCfg, err = runServer(l.logger, serverCfgPath, errChan)
+	l.server, l.serverCfg, err = runServer(l.logger, serverConfigPath, errChan)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +119,13 @@ func runServer(logger logrus.FieldLogger, cfgPath string, errChan chan<- error,
 	}
 
 	// override data dir
-	cfg.Storage.Filesystem.DataDir = fmt.Sprintf("/tmp/memprofiler_%v", time.Now().Format("20060102150405"))
+	dataDir := fmt.Sprintf("/tmp/memprofiler_%v", time.Now().Format("20060102150405"))
+	switch {
+	case cfg.Storage.Filesystem != nil:
+		cfg.Storage.Filesystem.DataDir = dataDir
+	case cfg.Storage.TSDB != nil:
+		cfg.Storage.TSDB.DataDir = dataDir
+	}
 
 	l, err := server_launcher.New(logger.WithField("side", "server"), cfg, errChan)
 	if err != nil {

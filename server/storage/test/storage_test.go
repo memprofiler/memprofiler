@@ -1,4 +1,4 @@
-package tsdb
+package test
 
 import (
 	"context"
@@ -12,10 +12,14 @@ import (
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/config"
+	"github.com/memprofiler/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/server/storage/filesystem"
+	"github.com/memprofiler/memprofiler/server/storage/tsdb"
 )
 
 // TestStorageWriteReadSimpleLocations simple integration test for tsdb-based storage for simple locations
 func TestStorageWriteReadSimpleLocations(t *testing.T) {
+
 	input := []*schema.Measurement{
 		{
 			ObservedAt: &timestamp.Timestamp{Seconds: 1},
@@ -42,7 +46,9 @@ func TestStorageWriteReadSimpleLocations(t *testing.T) {
 			},
 		},
 	}
-	testTemplate(t, input, input)
+
+	t.Run("filesystem", testTemplate(newStorage(t, false), input, input))
+	t.Run("tsdb", testTemplate(newStorage(t, true), input, input))
 }
 
 // TestStorageWriteRead simple integration test for tsdb-based storage
@@ -132,10 +138,62 @@ func TestStorageWriteRead(t *testing.T) {
 			},
 		},
 	}
-	testTemplate(t, input, output)
+
+	// TODO: does not work, need research
+	//t.Run("filesystem", testTemplate(newStorage(t, false), input, output))
+	t.Run("tsdb", testTemplate(newStorage(t, true), input, output))
 }
 
-func testTemplate(t *testing.T, input, expected []*schema.Measurement) {
+func testTemplate(s storage.Storage, input, expected []*schema.Measurement) func(t *testing.T) {
+	return func(t *testing.T) {
+		// write some measurements
+		serviceDesc := &schema.ServiceDescription{
+			ServiceType:     "database",
+			ServiceInstance: "localhost:8080",
+		}
+		saver, err := s.NewDataSaver(serviceDesc)
+		assert.NoError(t, err)
+		assert.NotNil(t, saver)
+
+		for _, mm := range input {
+			err = saver.Save(mm)
+			assert.NoError(t, err)
+		}
+		err = saver.Close()
+		assert.NoError(t, err)
+
+		// try to load data just written
+		sessionDesc := &schema.SessionDescription{
+			ServiceType:     serviceDesc.GetServiceType(),
+			ServiceInstance: serviceDesc.GetServiceInstance(),
+			SessionId:       saver.SessionID(),
+		}
+		loader, err := s.NewDataLoader(sessionDesc)
+		assert.NotNil(t, loader)
+		assert.NoError(t, err)
+
+		outChan, err := loader.Load(context.Background())
+		assert.NotNil(t, outChan)
+		assert.NoError(t, err)
+
+		output := make([]*schema.Measurement, 0, len(expected))
+		for result := range outChan {
+			assert.NotNil(t, result.Measurement)
+			if !assert.NoError(t, result.Err) {
+				assert.FailNow(t, "failed to read data")
+			}
+			output = append(output, result.Measurement)
+		}
+
+		err = loader.Close()
+		assert.NoError(t, err)
+
+		assert.Equal(t, len(expected), len(output))
+		assert.Equal(t, expected, output)
+	}
+}
+
+func newStorage(t *testing.T, isTSDB bool) storage.Storage {
 	logger := logrus.New()
 	logger.Out = os.Stdout
 
@@ -149,57 +207,21 @@ func testTemplate(t *testing.T, input, expected []*schema.Measurement) {
 		}
 	}()
 
-	cfg := &config.FilesystemStorageConfig{
-		DataDir:   dataDir,
-		SyncWrite: false,
+	var s storage.Storage
+	if isTSDB {
+		cfg := &config.TSDBStorageConfig{
+			DataDir: dataDir,
+		}
+		s, err = tsdb.NewStorage(logger, cfg)
+	} else {
+		cfg := &config.FilesystemStorageConfig{
+			DataDir:   dataDir,
+			SyncWrite: false,
+		}
+		s, err = filesystem.NewStorage(logger, cfg)
 	}
-
-	s, err := NewStorage(logger, cfg)
 	assert.NotNil(t, s)
 	assert.NoError(t, err)
 
-	// write some measurements
-	serviceDesc := &schema.ServiceDescription{
-		ServiceType:     "database",
-		ServiceInstance: "localhost:8080",
-	}
-	saver, err := s.NewDataSaver(serviceDesc)
-	assert.NoError(t, err)
-	assert.NotNil(t, saver)
-
-	for _, mm := range input {
-		err = saver.Save(mm)
-		assert.NoError(t, err)
-	}
-	err = saver.Close()
-	assert.NoError(t, err)
-
-	// try to load data just written
-	sessionDesc := &schema.SessionDescription{
-		ServiceType:     serviceDesc.GetServiceType(),
-		ServiceInstance: serviceDesc.GetServiceInstance(),
-		SessionId:       saver.SessionID(),
-	}
-	loader, err := s.NewDataLoader(sessionDesc)
-	assert.NotNil(t, loader)
-	assert.NoError(t, err)
-
-	outChan, err := loader.Load(context.Background())
-	assert.NotNil(t, outChan)
-	assert.NoError(t, err)
-
-	output := make([]*schema.Measurement, 0, len(expected))
-	for result := range outChan {
-		assert.NotNil(t, result.Measurement)
-		if !assert.NoError(t, result.Err) {
-			assert.FailNow(t, "failed to read data")
-		}
-		output = append(output, result.Measurement)
-	}
-
-	err = loader.Close()
-	assert.NoError(t, err)
-
-	assert.Equal(t, len(expected), len(output))
-	assert.Equal(t, expected, output)
+	return s
 }
