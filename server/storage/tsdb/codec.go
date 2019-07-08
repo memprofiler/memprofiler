@@ -1,10 +1,8 @@
 package tsdb
 
 import (
-	"bytes"
 	"encoding/base64"
 
-	"github.com/gogo/protobuf/jsonpb"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -14,35 +12,21 @@ type codec interface {
 	decode(string, proto.Message) error
 }
 
-// jsonCodec represents structs in JSON format
-type jsonCodec struct {
-	marshaller *jsonpb.Marshaler
+// b64Codec represents structs in base64 format
+type b64Codec struct{}
+
+func (c *b64Codec) encode(v proto.Message) (string, error) {
+	return base64.StdEncoding.EncodeToString([]byte(v.String())), nil
 }
 
-func (c *jsonCodec) encode(v proto.Message) (string, error) {
-	b := bytes.Buffer{}
-	err := c.marshaller.Marshal(&b, v)
-	if err != nil {
-		return "", err
-	}
-	return base64.StdEncoding.EncodeToString(b.Bytes()), nil
-}
-
-func (c *jsonCodec) decode(v string, p proto.Message) error {
-	b := bytes.Buffer{}
+func (c *b64Codec) decode(v string, p proto.Message) error {
 	decodedStr, err := base64.StdEncoding.DecodeString(v)
 	if err != nil {
 		return err
 	}
-	b.Write(decodedStr)
-	return jsonpb.Unmarshal(&b, p)
+	return proto.UnmarshalText(string(decodedStr), p)
 }
 
-func newJSONCodec() codec {
-	return &jsonCodec{
-		marshaller: &jsonpb.Marshaler{
-			EnumsAsInts:  true,
-			EmitDefaults: true,
-		},
-	}
+func newB64Codec() codec {
+	return &b64Codec{}
 }

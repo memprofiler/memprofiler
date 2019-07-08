@@ -152,7 +152,7 @@ func NewStorage(logger logrus.FieldLogger, cfg *config.TSDBStorageConfig) (stora
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &defaultStorage{
-		codec:          newJSONCodec(),
+		codec:          newB64Codec(),
 		sessionStorage: newSessionStorage(),
 		cfg:            cfg,
 		ctx:            ctx,
