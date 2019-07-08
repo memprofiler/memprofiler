@@ -3,15 +3,14 @@ package tsdb
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync"
 
-	"github.com/go-kit/kit/log"
 	"github.com/prometheus/tsdb/labels"
 	"github.com/sirupsen/logrus"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus_tsdb"
 	localTSDB "github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus_tsdb"
 )
 
@@ -60,30 +59,18 @@ func (l *defaultDataLoader) Close() error {
 }
 
 func newDataLoader(
-	subdirPath string,
 	sessionDesc *schema.SessionDescription,
 	codec codec,
 	logger logrus.FieldLogger,
 	wg *sync.WaitGroup,
+	stor prometheus_tsdb.TSDB,
 ) (storage.DataLoader, error) {
-	// TODO: wrap to logrus interface
-	var (
-		writer  = log.NewSyncWriter(os.Stdout)
-		logger2 = log.NewLogfmtLogger(writer)
-	)
-
 	// open file to load records
 	contextLogger := logger.WithFields(logrus.Fields{
 		"type":        sessionDesc.GetServiceType(),
 		"instance":    sessionDesc.GetServiceInstance(),
 		"sessionDesc": storage.SessionIDToString(sessionDesc.GetSessionId()),
 	})
-
-	// create storage
-	stor, err := localTSDB.OpenTSDB(subdirPath, logger2)
-	if err != nil {
-		return nil, err
-	}
 
 	loader := &defaultDataLoader{
 		storage: stor,

@@ -2,10 +2,8 @@ package tsdb
 
 import (
 	"fmt"
-	"os"
 	"sync"
 
-	"github.com/go-kit/kit/log"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/prometheus/tsdb/labels"
 
@@ -77,23 +75,11 @@ func (s *defaultDataSaver) SessionID() storage.SessionID {
 }
 
 func newDataSaver(
-	subDirPath string,
 	sessionDesc *schema.SessionDescription,
 	codec codec,
 	wg *sync.WaitGroup,
+	stor prometheus_tsdb.TSDB,
 ) (storage.DataSaver, error) {
-	// TODO: wrap to logrus interface
-	var (
-		writer = log.NewSyncWriter(os.Stdout)
-		logger = log.NewLogfmtLogger(writer)
-	)
-
-	// create storage
-	stor, err := prometheus_tsdb.OpenTSDB(subDirPath, logger)
-	if err != nil {
-		return nil, err
-	}
-
 	saver := &defaultDataSaver{
 		storage:     stor,
 		codec:       codec,

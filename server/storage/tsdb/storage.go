@@ -2,17 +2,16 @@ package tsdb
 
 import (
 	"context"
-	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"sync"
 
+	"github.com/go-kit/kit/log"
 	"github.com/sirupsen/logrus"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/config"
 	"github.com/memprofiler/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus_tsdb"
 )
 
 var _ storage.Storage = (*defaultStorage)(nil)
@@ -30,11 +29,8 @@ type defaultStorage struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 	logger logrus.FieldLogger
+	stor   prometheus_tsdb.TSDB
 }
-
-const (
-	dirPermissions = 0755
-)
 
 func (s *defaultStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (storage.DataSaver, error) {
 	select {
@@ -46,25 +42,10 @@ func (s *defaultStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (s
 
 	// register new session for this service instance
 	session := s.sessionStorage.registerNextSession(serviceDesc)
-
-	// obtain directory to store data coming from a particular service instance
-	subdirPath := s.makeSubdirPath(session.GetDescription())
-	if _, err := os.Stat(subdirPath); err != nil {
-		if !os.IsNotExist(err) {
-			return nil, err
-		}
-
-		// create directory if it doesn't exist
-		if err = os.MkdirAll(subdirPath, dirPermissions); err != nil {
-			return nil, fmt.Errorf("failed to create directory for service data: %v", err)
-		}
-	}
-
-	return newDataSaver(subdirPath, session.GetDescription(), s.codec, &s.wg)
+	return newDataSaver(session.GetDescription(), s.codec, &s.wg, s.stor)
 }
 
 func (s *defaultStorage) NewDataLoader(sd *schema.SessionDescription) (storage.DataLoader, error) {
-
 	select {
 	case <-s.ctx.Done():
 		return nil, s.ctx.Err()
@@ -72,17 +53,7 @@ func (s *defaultStorage) NewDataLoader(sd *schema.SessionDescription) (storage.D
 		s.wg.Add(1)
 	}
 
-	return newDataLoader(s.makeSubdirPath(sd), sd, s.codec, s.logger, &s.wg)
-}
-
-// makeSubdirPath builds a path for a filesystem direcory with instance data
-func (s *defaultStorage) makeSubdirPath(sessionDescription *schema.SessionDescription) string {
-	return filepath.Join(
-		s.cfg.DataDir,
-		sessionDescription.GetServiceType(),
-		sessionDescription.GetServiceInstance(),
-		storage.SessionIDToString(sessionDescription.GetSessionId()),
-	)
+	return newDataLoader(sd, s.codec, s.logger, &s.wg, s.stor)
 }
 
 func (s *defaultStorage) Quit() {
@@ -90,53 +61,13 @@ func (s *defaultStorage) Quit() {
 	s.wg.Wait()
 }
 
-func (s *defaultStorage) populateSessionStorage() error {
-
-	// traverse root directory and extract subdirectories
-	// in order to obtain list of services, instances, and sessions
-	subdirs1, err := ioutil.ReadDir(s.cfg.DataDir)
-	if err != nil {
-		return err
-	}
-
-	for _, s1 := range subdirs1 {
-		if s1.IsDir() {
-			s1Path := filepath.Join(s.cfg.DataDir, s1.Name())
-			subdirs2, err := ioutil.ReadDir(s1Path)
-			if err != nil {
-				return err
-			}
-			for _, s2 := range subdirs2 {
-				s2Path := filepath.Join(s1Path, s2.Name())
-				subdirs3, err := ioutil.ReadDir(s2Path)
-				if err != nil {
-					return err
-				}
-				for _, s3 := range subdirs3 {
-					if s3.IsDir() {
-						sessionID, err := storage.SessionIDFromString(s3.Name())
-						if err != nil {
-							return err
-						}
-						s.sessionStorage.registerExistingSession(
-							&schema.Session{
-								Description: &schema.SessionDescription{
-									ServiceInstance: s2.Name(),
-									ServiceType:     s1.Name(),
-									SessionId:       sessionID,
-								},
-							})
-					}
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
-// NewStorage builds new storage that keeps measurements in separate files
+// NewStorage builds new storage that keeps measurements in tsdb
 func NewStorage(logger logrus.FieldLogger, cfg *config.TSDBStorageConfig) (storage.Storage, error) {
+	// TODO: wrap to logrus interface
+	var (
+		writer  = log.NewSyncWriter(os.Stdout)
+		logger2 = log.NewLogfmtLogger(writer)
+	)
 
 	// create data directory if not exists
 	if _, err := os.Stat(cfg.DataDir); err != nil {
@@ -149,6 +80,12 @@ func NewStorage(logger logrus.FieldLogger, cfg *config.TSDBStorageConfig) (stora
 		}
 	}
 
+	// create storage
+	stor, err := prometheus_tsdb.OpenTSDB(cfg.DataDir, logger2)
+	if err != nil {
+		return nil, err
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 
 	s := &defaultStorage{
@@ -159,11 +96,7 @@ func NewStorage(logger logrus.FieldLogger, cfg *config.TSDBStorageConfig) (stora
 		cancel:         cancel,
 		wg:             sync.WaitGroup{},
 		logger:         logger,
-	}
-
-	// traverse dirs and find previously stored data
-	if err := s.populateSessionStorage(); err != nil {
-		return nil, err
+		stor:           stor,
 	}
 	return s, nil
 }
