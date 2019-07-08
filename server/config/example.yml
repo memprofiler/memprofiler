@@ -6,11 +6,13 @@ frontend:
 backend:
   listen_endpoint: "localhost:46219"
 
-# storage
-storage:
-  filesystem:
-    data_dir: "/tmp/memprofiler"
-    sync_write: false
+# storage type
+storage_type: "filesystem"
+
+# filesystem storage
+filesystem:
+  data_dir: "/tmp/memprofiler"
+  sync_write: false
 
 # metrics
 metrics:

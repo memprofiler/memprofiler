@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/memprofiler/memprofiler/server/common"
+	"github.com/memprofiler/memprofiler/server/config"
 	server_config "github.com/memprofiler/memprofiler/server/config"
 	server_launcher "github.com/memprofiler/memprofiler/server/launcher"
 	reporter_config "github.com/memprofiler/memprofiler/test/reporter/config"
@@ -120,11 +121,11 @@ func runServer(logger logrus.FieldLogger, cfgPath string, errChan chan<- error,
 
 	// override data dir
 	dataDir := fmt.Sprintf("/tmp/memprofiler_%v", time.Now().Format("20060102150405"))
-	switch {
-	case cfg.Storage.Filesystem != nil:
-		cfg.Storage.Filesystem.DataDir = dataDir
-	case cfg.Storage.TSDB != nil:
-		cfg.Storage.TSDB.DataDir = dataDir
+	switch cfg.StorageType {
+	case config.StorageTypeFilesystem:
+		cfg.Filesystem.DataDir = dataDir
+	case config.StorageTypeTSDB:
+		cfg.TSDB.DataDir = dataDir
 	}
 
 	l, err := server_launcher.New(logger.WithField("side", "server"), cfg, errChan)

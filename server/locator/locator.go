@@ -34,11 +34,11 @@ func NewLocator(logger logrus.FieldLogger, cfg *config.Config) (*Locator, error)
 
 	// 2. run storage
 	l.Logger.Debug("Starting storage")
-	switch {
-	case cfg.Storage.Filesystem != nil:
-		l.Storage, err = filesystem.NewStorage(l.Logger, cfg.Storage.Filesystem)
-	case cfg.Storage.TSDB != nil:
-		l.Storage, err = tsdb.NewStorage(l.Logger, cfg.Storage.TSDB)
+	switch cfg.StorageType {
+	case config.StorageTypeFilesystem:
+		l.Storage, err = filesystem.NewStorage(l.Logger, cfg.Filesystem)
+	case config.StorageTypeTSDB:
+		l.Storage, err = tsdb.NewStorage(l.Logger, cfg.TSDB)
 	}
 	if err != nil {
 		return nil, err

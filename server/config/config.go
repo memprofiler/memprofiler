@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"gopkg.in/yaml.v2"
@@ -8,11 +9,13 @@ import (
 
 // Config is a top-level structure with all server settings
 type Config struct {
-	Backend  *BackendConfig  `yaml:"backend"`
-	Frontend *FrontendConfig `yaml:"frontend"`
-	Storage  *StorageConfig  `yaml:"storage"`
-	Metrics  *MetricsConfig  `yaml:"metrics"`
-	Logging  *LoggingConfig  `yaml:"logging"`
+	Backend     *BackendConfig           `yaml:"backend"`
+	Frontend    *FrontendConfig          `yaml:"frontend"`
+	Metrics     *MetricsConfig           `yaml:"metrics"`
+	Logging     *LoggingConfig           `yaml:"logging"`
+	StorageType string                   `yaml:"storage_type"`
+	Filesystem  *FilesystemStorageConfig `yaml:"filesystem"`
+	TSDB        *TSDBStorageConfig       `yaml:"tsdb"`
 }
 
 // Verify checks config
@@ -24,15 +27,26 @@ func (c *Config) Verify() error {
 	if err := c.Frontend.Verify(); err != nil {
 		return err
 	}
-	if err := c.Storage.Verify(); err != nil {
-		return err
-	}
 	if err := c.Metrics.Verify(); err != nil {
 		return err
 	}
 	if err := c.Logging.Verify(); err != nil {
 		return err
 	}
+
+	switch c.StorageType {
+	case StorageTypeTSDB:
+		if err := c.TSDB.Verify(); err != nil {
+			return err
+		}
+	case StorageTypeFilesystem:
+		if err := c.Filesystem.Verify(); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unexpected storage type")
+	}
+
 	return nil
 }
 

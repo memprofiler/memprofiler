@@ -6,10 +6,12 @@ frontend:
 backend:
   listen_endpoint: "localhost:46219"
 
-# storage
-storage:
-  tsdb:
-    data_dir: "/tmp/memprofiler"
+# storage type
+storage_type: "tsdb"
+
+# tsdb storage
+tsdb:
+  data_dir: "/tmp/memprofiler"
 
 # metrics
 metrics:
