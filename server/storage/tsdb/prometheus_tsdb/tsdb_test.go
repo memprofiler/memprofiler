@@ -148,6 +148,7 @@ func TestTwoLabelSetStorage(t *testing.T) {
 			labelSet = labelSets[i]
 		)
 		// read data with label0 (i.e. labelSet[0])
+		// read from 0 to 4 time
 		querier, err := storage.Querier(0, 4)
 
 		wg.Add(1)
