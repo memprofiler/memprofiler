@@ -11,21 +11,21 @@ import (
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/config"
 	"github.com/memprofiler/memprofiler/server/storage"
-	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus_tsdb"
+	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus"
 )
 
 var _ storage.Storage = (*tsdbStorage)(nil)
 
 // tsdbStorage uses prometheus tsdb as a persistent storage
 type tsdbStorage struct {
-	sessionStorage
+	storage.SessionStorage
 	codec  codec
 	cfg    *config.TSDBStorageConfig
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 	logger logrus.FieldLogger
-	stor   prometheus_tsdb.TSDB
+	stor   prometheus.TSDB
 }
 
 func (s *tsdbStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (storage.DataSaver, error) {
@@ -37,7 +37,7 @@ func (s *tsdbStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (stor
 	}
 
 	// register new session for this service instance
-	session := s.sessionStorage.registerNextSession(serviceDesc)
+	session := s.SessionStorage.RegisterNextSession(serviceDesc)
 	return newDataSaver(session.GetDescription(), s.codec, &s.wg, s.stor)
 }
 
@@ -77,7 +77,7 @@ func NewStorage(logger logrus.FieldLogger, cfg *config.TSDBStorageConfig) (stora
 	}
 
 	// create storage
-	stor, err := prometheus_tsdb.OpenTSDB(cfg.DataDir, logger2)
+	stor, err := prometheus.OpenTSDB(cfg.DataDir, logger2)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func NewStorage(logger logrus.FieldLogger, cfg *config.TSDBStorageConfig) (stora
 
 	s := &tsdbStorage{
 		codec:          newB64Codec(),
-		sessionStorage: newSessionStorage(),
+		SessionStorage: storage.NewSessionStorage(),
 		cfg:            cfg,
 		ctx:            ctx,
 		cancel:         cancel,

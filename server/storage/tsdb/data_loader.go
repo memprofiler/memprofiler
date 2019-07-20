@@ -10,8 +10,8 @@ import (
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
-	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus_tsdb"
-	localTSDB "github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus_tsdb"
+	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus"
+	localTSDB "github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus"
 )
 
 const (
@@ -28,7 +28,7 @@ type defaultDataLoader struct {
 
 // Load read data from TSDB
 func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResult, error) {
-	var sessionLabel = labels.Label{Name: SessionLabelName, Value: fmt.Sprintf("%v", l.sd.GetSessionId())}
+	var sessionLabel = labels.Label{Name: sessionLabelName, Value: fmt.Sprintf("%v", l.sd.GetSessionId())}
 
 	li, err := NewMeasurementIterator(l.storage, l.codec, sessionLabel)
 	if err != nil {
@@ -68,7 +68,7 @@ func newDataLoader(
 	codec codec,
 	logger logrus.FieldLogger,
 	wg *sync.WaitGroup,
-	stor prometheus_tsdb.TSDB,
+	stor prometheus.TSDB,
 ) (storage.DataLoader, error) {
 	// open file to load records
 	contextLogger := logger.WithFields(logrus.Fields{

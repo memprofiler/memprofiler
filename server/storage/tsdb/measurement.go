@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/tsdb/labels"
 
 	"github.com/memprofiler/memprofiler/schema"
-	localTSDB "github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus_tsdb"
+	localTSDB "github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus"
 )
 
 // MeasurementIterator gets measurement for each time in TSDB
@@ -95,10 +95,8 @@ func (i *measurementIterator) currentLocations() ([]*schema.Location, error) {
 			// delete MemoryUsageIterator if no new values
 			if !i.memoryUsageIteratorMap[l].Next() {
 				delete(i.memoryUsageIteratorMap, l)
-			} else {
-				if err := i.memoryUsageIteratorMap[l].Error(); err != nil {
-					return nil, err
-				}
+			} else if err := i.memoryUsageIteratorMap[l].Error(); err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -128,8 +126,8 @@ func NewMeasurementIterator(tsdb localTSDB.TSDB, codec codec, sessionLabel label
 	}
 
 	// TODO: use LabelValuesFor when implemented
-	// metaLabels, err := querier.LabelValuesFor(MetaLabelName, sessionLabel)
-	metaLabels, err := querier.LabelValues(MetaLabelName)
+	// metaLabels, err := querier.LabelValuesFor(metaLabelName, sessionLabel)
+	metaLabels, err := querier.LabelValues(metaLabelName)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +136,7 @@ func NewMeasurementIterator(tsdb localTSDB.TSDB, codec codec, sessionLabel label
 
 	// create map (map[Session]LocationIterator)
 	for _, m := range metaLabels {
-		metaLabel := labels.Label{Name: MetaLabelName, Value: m}
+		metaLabel := labels.Label{Name: metaLabelName, Value: m}
 		mui, ok := NewMemoryUsageIterator(querier, sessionLabel, metaLabel)
 		if ok {
 			locationsIterMap[m] = mui

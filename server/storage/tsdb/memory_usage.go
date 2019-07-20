@@ -75,19 +75,19 @@ func (i *memoryUsageIterator) Error() error {
 
 // NewMemoryUsageIterator iterator for simple Location
 func NewMemoryUsageIterator(querier tsdb.Querier, sessionLabel, metaLabel labels.Label) (MemoryUsageIterator, bool) {
-	allocObjectsIterator, ok := createSeriesIterator(querier, sessionLabel, metaLabel, AllocObjectsLabel)
+	allocObjectsIterator, ok := createSeriesIterator(querier, sessionLabel, metaLabel, allocObjectsLabel())
 	if !ok {
 		return nil, false
 	}
-	allocBytesIterator, ok := createSeriesIterator(querier, sessionLabel, metaLabel, AllocBytesLabel)
+	allocBytesIterator, ok := createSeriesIterator(querier, sessionLabel, metaLabel, allocBytesLabel())
 	if !ok {
 		return nil, false
 	}
-	freeObjectsIterator, ok := createSeriesIterator(querier, sessionLabel, metaLabel, FreeObjectsLabel)
+	freeObjectsIterator, ok := createSeriesIterator(querier, sessionLabel, metaLabel, freeObjectsLabel())
 	if !ok {
 		return nil, false
 	}
-	freeBytesIterator, ok := createSeriesIterator(querier, sessionLabel, metaLabel, FreeBytesLabel)
+	freeBytesIterator, ok := createSeriesIterator(querier, sessionLabel, metaLabel, freeBytesLabel())
 	if !ok {
 		return nil, false
 	}

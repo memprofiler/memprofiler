@@ -5,17 +5,23 @@ import (
 )
 
 const (
-	SessionLabelName    = "session"
-	MetaLabelName       = "meta"
-	MetricTypeLabelName = "metric_type"
+	sessionLabelName    = "session"
+	metaLabelName       = "meta"
+	metricTypeLabelName = "metric_type"
 )
 
-var (
-	AllocBytesLabel   = labels.Label{Name: MetricTypeLabelName, Value: "AllocBytes"}
-	AllocObjectsLabel = labels.Label{Name: MetricTypeLabelName, Value: "AllocObjects"}
-	FreeBytesLabel    = labels.Label{Name: MetricTypeLabelName, Value: "FreeBytes"}
-	FreeObjectsLabel  = labels.Label{Name: MetricTypeLabelName, Value: "FreeObjects"}
-)
+func allocBytesLabel() labels.Label {
+	return labels.Label{Name: metricTypeLabelName, Value: "AllocBytes"}
+}
+func allocObjectsLabel() labels.Label {
+	return labels.Label{Name: metricTypeLabelName, Value: "AllocObjects"}
+}
+func freeBytesLabel() labels.Label {
+	return labels.Label{Name: metricTypeLabelName, Value: "FreeBytes"}
+}
+func freeObjectsLabel() labels.Label {
+	return labels.Label{Name: metricTypeLabelName, Value: "FreeObjects"}
+}
 
 type MeasurementInfo struct {
 	Labels labels.Labels

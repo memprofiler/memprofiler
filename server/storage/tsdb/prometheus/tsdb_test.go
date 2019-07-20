@@ -1,4 +1,4 @@
-package prometheus_tsdb
+package prometheus
 
 import (
 	"os"
@@ -61,12 +61,13 @@ func TestSimpleStorage(t *testing.T) {
 		series := seriesSet.At()
 		seriesIterator := series.Iterator()
 		for seriesIterator.Next() {
-			writeTime, val := seriesIterator.At()
+			writeTime, current := seriesIterator.At()
 			// validate data, if data exist, delete it
-			val, ok := data[writeTime]
+			expected, ok := data[writeTime]
 			if !ok {
-				assert.Fail(t, "unexpected data: %v - %v", writeTime, val)
+				assert.Fail(t, "unexpected data: %v - %v", writeTime, expected)
 			}
+			assert.Equal(t, expected, current)
 			delete(data, writeTime)
 		}
 	}
@@ -163,12 +164,13 @@ func TestTwoLabelSetStorage(t *testing.T) {
 				series := seriesSet.At()
 				seriesIterator := series.Iterator()
 				for seriesIterator.Next() {
-					writeTime, val := seriesIterator.At()
+					writeTime, current := seriesIterator.At()
 					// validate data, if data exist, delete it
-					val, ok := dataSet[writeTime]
+					expected, ok := dataSet[writeTime]
 					if !ok {
-						assert.Fail(t, "unexpected data: %v - %v", writeTime, val)
+						assert.Fail(t, "unexpected data: %v - %v", writeTime, expected)
 					}
+					assert.Equal(t, expected, current)
 					delete(dataSet, writeTime)
 				}
 			}

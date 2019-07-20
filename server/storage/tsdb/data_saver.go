@@ -9,14 +9,14 @@ import (
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
-	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus_tsdb"
+	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus"
 )
 
 var _ storage.DataSaver = (*defaultDataSaver)(nil)
 
-// defaultDataSaver puts records to a prometheus_tsdb
+// defaultDataSaver puts records to a prometheus
 type defaultDataSaver struct {
-	storage     prometheus_tsdb.TSDB
+	storage     prometheus.TSDB
 	codec       codec
 	sessionDesc *schema.SessionDescription
 	wg          *sync.WaitGroup
@@ -25,7 +25,7 @@ type defaultDataSaver struct {
 // Save store Measurement to TSDB
 func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 	var (
-		sessionLabel = labels.Label{Name: SessionLabelName, Value: fmt.Sprintf("%v", s.SessionID())}
+		sessionLabel = labels.Label{Name: sessionLabelName, Value: fmt.Sprintf("%v", s.SessionID())}
 		location     = mm.GetLocations()
 	)
 
@@ -42,12 +42,12 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 			return err
 		}
 
-		metaLabel := labels.Label{Name: MetaLabelName, Value: callStack}
+		metaLabel := labels.Label{Name: metaLabelName, Value: callStack}
 		measurementsInfo := MeasurementsInfo{
-			{labels.Labels{sessionLabel, metaLabel, AllocBytesLabel}, float64(mu.GetAllocBytes())},
-			{labels.Labels{sessionLabel, metaLabel, AllocObjectsLabel}, float64(mu.GetAllocObjects())},
-			{labels.Labels{sessionLabel, metaLabel, FreeBytesLabel}, float64(mu.GetFreeBytes())},
-			{labels.Labels{sessionLabel, metaLabel, FreeObjectsLabel}, float64(mu.GetFreeObjects())},
+			{labels.Labels{sessionLabel, metaLabel, allocBytesLabel()}, float64(mu.GetAllocBytes())},
+			{labels.Labels{sessionLabel, metaLabel, allocObjectsLabel()}, float64(mu.GetAllocObjects())},
+			{labels.Labels{sessionLabel, metaLabel, freeBytesLabel()}, float64(mu.GetFreeBytes())},
+			{labels.Labels{sessionLabel, metaLabel, freeObjectsLabel()}, float64(mu.GetFreeObjects())},
 		}
 		for _, mi := range measurementsInfo {
 			_, err = appender.Add(mi.Labels, time.Unix(), mi.Value)
@@ -78,7 +78,7 @@ func newDataSaver(
 	sessionDesc *schema.SessionDescription,
 	codec codec,
 	wg *sync.WaitGroup,
-	stor prometheus_tsdb.TSDB,
+	stor prometheus.TSDB,
 ) (storage.DataSaver, error) {
 	saver := &defaultDataSaver{
 		storage:     stor,

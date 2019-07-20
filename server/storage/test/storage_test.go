@@ -207,7 +207,9 @@ func compareLocationsSets(l1, l2 []*schema.Location) bool {
 	for _, i := range l1 {
 		res := false
 		for _, j := range l2 {
-			if reflect.DeepEqual(i.GetCallstack(), j.GetCallstack()) && reflect.DeepEqual(i.GetMemoryUsage(), j.GetMemoryUsage()) {
+			callstackEquality := reflect.DeepEqual(i.GetCallstack(), j.GetCallstack())
+			memoryUsageEquality := reflect.DeepEqual(i.GetMemoryUsage(), j.GetMemoryUsage())
+			if callstackEquality && memoryUsageEquality {
 				res = true
 				break
 			}
