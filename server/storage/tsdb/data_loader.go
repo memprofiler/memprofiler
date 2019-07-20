@@ -40,7 +40,12 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 	go func() {
 		defer close(results)
 		for li.Next() {
-			m := &storage.LoadResult{Measurement: li.At(), Err: err}
+			var (
+				measurement = li.At()
+				err         = li.Error()
+			)
+
+			m := &storage.LoadResult{Measurement: measurement, Err: err}
 
 			select {
 			case results <- m:
