@@ -14,14 +14,10 @@ import (
 	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus_tsdb"
 )
 
-var _ storage.Storage = (*defaultStorage)(nil)
+var _ storage.Storage = (*tsdbStorage)(nil)
 
-// defaultStorage uses filesystem as a persistent storage;
-// services - first level subdirectories;
-// instances - second level subdirectories;
-// sessions - third level subdirectories;
-// measurements - distinct files within sessions subdirectories;
-type defaultStorage struct {
+// tsdbStorage uses prometheus tsdb as a persistent storage
+type tsdbStorage struct {
 	sessionStorage
 	codec  codec
 	cfg    *config.TSDBStorageConfig
@@ -32,7 +28,7 @@ type defaultStorage struct {
 	stor   prometheus_tsdb.TSDB
 }
 
-func (s *defaultStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (storage.DataSaver, error) {
+func (s *tsdbStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (storage.DataSaver, error) {
 	select {
 	case <-s.ctx.Done():
 		return nil, s.ctx.Err()
@@ -45,7 +41,7 @@ func (s *defaultStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (s
 	return newDataSaver(session.GetDescription(), s.codec, &s.wg, s.stor)
 }
 
-func (s *defaultStorage) NewDataLoader(sd *schema.SessionDescription) (storage.DataLoader, error) {
+func (s *tsdbStorage) NewDataLoader(sd *schema.SessionDescription) (storage.DataLoader, error) {
 	select {
 	case <-s.ctx.Done():
 		return nil, s.ctx.Err()
@@ -56,7 +52,7 @@ func (s *defaultStorage) NewDataLoader(sd *schema.SessionDescription) (storage.D
 	return newDataLoader(sd, s.codec, s.logger, &s.wg, s.stor)
 }
 
-func (s *defaultStorage) Quit() {
+func (s *tsdbStorage) Quit() {
 	s.cancel()
 	s.wg.Wait()
 }
@@ -88,7 +84,7 @@ func NewStorage(logger logrus.FieldLogger, cfg *config.TSDBStorageConfig) (stora
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	s := &defaultStorage{
+	s := &tsdbStorage{
 		codec:          newB64Codec(),
 		sessionStorage: newSessionStorage(),
 		cfg:            cfg,
