@@ -32,7 +32,8 @@ type measurementIterator struct {
 
 // Next check for next element
 func (i *measurementIterator) Next() bool {
-	// if memory usage map contains records, then we must get next minimum time
+	// do iteration
+	// if memory usage map contains records, we must get minimum time for current iteration
 	if len(i.memoryUsageIteratorMap) > 0 {
 		i.updateMin()
 		return true
@@ -68,6 +69,7 @@ func (i *measurementIterator) updateMin() {
 	// reset time to time now for get next min
 	i.currentTime = time.Now().Unix()
 
+	// get minimum time from all measurements
 	for _, v := range i.memoryUsageIteratorMap {
 		memoryUsageTimeState, _ := v.At()
 		if memoryUsageTimeState < i.currentTime {
@@ -79,7 +81,7 @@ func (i *measurementIterator) updateMin() {
 func (i *measurementIterator) currentLocations() ([]*schema.Location, error) {
 	var currentLocations []*schema.Location
 
-	// create Locations
+	// get all Sessions from map with same time (current time state)
 	for l, v := range i.memoryUsageIteratorMap {
 		memoryUsageTimeState, currentMemoryUsage := v.At()
 		if memoryUsageTimeState == i.currentTime {
@@ -134,6 +136,7 @@ func NewMeasurementIterator(tsdb localTSDB.TSDB, codec codec, sessionLabel label
 
 	locationsIterMap := make(map[string]MemoryUsageIterator, len(metaLabels))
 
+	// create map (map[Session]LocationIterator)
 	for _, m := range metaLabels {
 		metaLabel := labels.Label{Name: MetaLabelName, Value: m}
 		mui, ok := NewMemoryUsageIterator(querier, sessionLabel, metaLabel)
