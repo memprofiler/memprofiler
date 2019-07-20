@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -19,7 +20,6 @@ import (
 
 // TestStorageWriteReadSimpleLocations simple integration test for tsdb-based storage for simple locations
 func TestStorageWriteReadSimpleLocations(t *testing.T) {
-
 	input := []*schema.Measurement{
 		{
 			ObservedAt: &timestamp.Timestamp{Seconds: 1},
@@ -47,12 +47,13 @@ func TestStorageWriteReadSimpleLocations(t *testing.T) {
 		},
 	}
 
-	t.Run("filesystem", testTemplate(newStorage(t, false), input, input))
-	t.Run("tsdb", testTemplate(newStorage(t, true), input, input))
+	// for this case input == output because we have one location for second
+	t.Run("filesystem", caseStorageWriteRead(newStorage(t, false), input, input))
+	t.Run("tsdb", caseStorageWriteRead(newStorage(t, true), input, input))
 }
 
-// TestStorageWriteRead simple integration test for tsdb-based storage
-func TestStorageWriteRead(t *testing.T) {
+// TestStorageWriteReadManyLocations simple integration test for tsdb-based storage
+func TestStorageWriteReadManyLocations(t *testing.T) {
 	input := []*schema.Measurement{
 		{
 			ObservedAt: &timestamp.Timestamp{Seconds: 1},
@@ -139,12 +140,13 @@ func TestStorageWriteRead(t *testing.T) {
 		},
 	}
 
+	// input != output, because we write in one moment separately two different locations
 	// TODO: does not work, need research
-	//t.Run("filesystem", testTemplate(newStorage(t, false), input, output))
-	t.Run("tsdb", testTemplate(newStorage(t, true), input, output))
+	//t.Run("filesystem", caseStorageWriteRead(newStorage(t, false), input, output))
+	t.Run("tsdb", caseStorageWriteRead(newStorage(t, true), input, output))
 }
 
-func testTemplate(s storage.Storage, input, expected []*schema.Measurement) func(t *testing.T) {
+func caseStorageWriteRead(s storage.Storage, input, expected []*schema.Measurement) func(t *testing.T) {
 	return func(t *testing.T) {
 		// write some measurements
 		serviceDesc := &schema.ServiceDescription{
@@ -188,9 +190,34 @@ func testTemplate(s storage.Storage, input, expected []*schema.Measurement) func
 		err = loader.Close()
 		assert.NoError(t, err)
 
-		assert.Equal(t, len(expected), len(output))
-		assert.Equal(t, expected, output)
+		if !assert.Equal(t, len(expected), len(output)) {
+			return
+		}
+		for k, expectedMeasurement := range expected {
+			currentMeasurement := output[k]
+			assert.True(t, compareLocationsSets(expectedMeasurement.Locations, currentMeasurement.Locations))
+		}
 	}
+}
+
+func compareLocationsSets(l1, l2 []*schema.Location) bool {
+	if len(l1) != len(l2) {
+		return false
+	}
+	for _, i := range l1 {
+		res := false
+		for _, j := range l2 {
+			if reflect.DeepEqual(i.GetCallstack(), j.GetCallstack()) && reflect.DeepEqual(i.GetMemoryUsage(), j.GetMemoryUsage()) {
+				res = true
+				break
+			}
+		}
+		if !res {
+			return false
+		}
+	}
+
+	return true
 }
 
 func newStorage(t *testing.T, isTSDB bool) storage.Storage {
