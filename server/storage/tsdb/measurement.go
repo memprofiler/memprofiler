@@ -32,6 +32,7 @@ type measurementIterator struct {
 
 // Next check for next element
 func (i *measurementIterator) Next() bool {
+	// if memory usage map contains records, then we must get next minimum time
 	if len(i.memoryUsageIteratorMap) > 0 {
 		i.updateMin()
 		return true
