@@ -1,7 +1,6 @@
 package prometheus_tsdb
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -76,7 +75,7 @@ func TestSimpleStorage(t *testing.T) {
 	assert.Equal(t, 0, len(data), "Not all data was returned")
 }
 
-// TestTwoLabelSetStorage test write and read from storage with filtering
+// TestTwoLabelSetStorage test write and read from storage with filtering and parallel
 func TestTwoLabelSetStorage(t *testing.T) {
 	var (
 		testDir = "/tmp/test"
@@ -142,10 +141,6 @@ func TestTwoLabelSetStorage(t *testing.T) {
 		}()
 	}
 	wg.Wait()
-
-	querier, err := storage.Querier(0, 4)
-	r, _ := querier.LabelValues("meta")
-	fmt.Printf("\n%v\n", r)
 
 	for i := 0; i < 2; i++ {
 		var (
