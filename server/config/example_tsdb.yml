@@ -7,12 +7,11 @@ backend:
   listen_endpoint: "localhost:46219"
 
 # storage type
-storage_type: "filesystem"
+storage_type: "tsdb"
 
-# filesystem storage
-filesystem:
+# tsdb storage
+tsdb:
   data_dir: "/tmp/memprofiler"
-  sync_write: false
 
 # metrics
 metrics:

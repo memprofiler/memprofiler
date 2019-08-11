@@ -23,7 +23,7 @@ var _ storage.Storage = (*defaultStorage)(nil)
 // sessions - third level subdirectories;
 // measurements - distinct files within sessions subdirectories;
 type defaultStorage struct {
-	sessionStorage
+	storage.SessionStorage
 	codec  codec
 	cfg    *config.FilesystemStorageConfig
 	ctx    context.Context
@@ -47,7 +47,7 @@ func (s *defaultStorage) NewDataSaver(serviceDesc *schema.ServiceDescription) (s
 	}
 
 	// register new session for this service instance
-	session := s.sessionStorage.registerNextSession(serviceDesc)
+	session := s.SessionStorage.RegisterNextSession(serviceDesc)
 
 	// obtain directory to store data coming from a particular service instance
 	subdirPath := s.makeSubdirPath(session.GetDescription())
@@ -121,7 +121,7 @@ func (s *defaultStorage) populateSessionStorage() error {
 						if err != nil {
 							return err
 						}
-						s.sessionStorage.registerExistingSession(
+						s.SessionStorage.RegisterExistingSession(
 							&schema.Session{
 								Description: &schema.SessionDescription{
 									ServiceInstance: s2.Name(),
@@ -156,7 +156,7 @@ func NewStorage(logger logrus.FieldLogger, cfg *config.FilesystemStorageConfig) 
 
 	s := &defaultStorage{
 		codec:          newJSONCodec(),
-		sessionStorage: newSessionStorage(),
+		SessionStorage: storage.NewSessionStorage(),
 		cfg:            cfg,
 		ctx:            ctx,
 		cancel:         cancel,

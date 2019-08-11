@@ -8,6 +8,7 @@ import (
 	"github.com/memprofiler/memprofiler/server/metrics"
 	"github.com/memprofiler/memprofiler/server/storage"
 	"github.com/memprofiler/memprofiler/server/storage/filesystem"
+	"github.com/memprofiler/memprofiler/server/storage/tsdb"
 	"github.com/memprofiler/memprofiler/utils"
 )
 
@@ -33,8 +34,11 @@ func NewLocator(logger logrus.FieldLogger, cfg *config.Config) (*Locator, error)
 
 	// 2. run storage
 	l.Logger.Debug("Starting storage")
-	if cfg.Storage.Filesystem != nil {
-		l.Storage, err = filesystem.NewStorage(l.Logger, cfg.Storage.Filesystem)
+	switch cfg.StorageType {
+	case config.StorageTypeFilesystem:
+		l.Storage, err = filesystem.NewStorage(l.Logger, cfg.Filesystem)
+	case config.StorageTypeTSDB:
+		l.Storage, err = tsdb.NewStorage(l.Logger, cfg.TSDB)
 	}
 	if err != nil {
 		return nil, err

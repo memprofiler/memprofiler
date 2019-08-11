@@ -1,4 +1,4 @@
-package filesystem
+package storage
 
 import (
 	"fmt"
@@ -8,16 +8,15 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/memprofiler/memprofiler/schema"
-	"github.com/memprofiler/memprofiler/server/storage"
 )
 
-type sessionStorage interface {
-	storage.MetadataStorage
-	registerNextSession(*schema.ServiceDescription) *schema.Session
-	registerExistingSession(*schema.Session)
+type SessionStorage interface {
+	MetadataStorage
+	RegisterNextSession(*schema.ServiceDescription) *schema.Session
+	RegisterExistingSession(*schema.Session)
 }
 
-var _ sessionStorage = (*defaultSessionStorage)(nil)
+var _ SessionStorage = (*defaultSessionStorage)(nil)
 
 // defaultSessionStorage stores session metadata in memory;
 // the amount of memory consumed by sessions is not expected to be very big;
@@ -28,7 +27,7 @@ type defaultSessionStorage struct {
 	values map[string]map[string][]*schema.Session
 }
 
-func (ss *defaultSessionStorage) registerNextSession(desc *schema.ServiceDescription) *schema.Session {
+func (ss *defaultSessionStorage) RegisterNextSession(desc *schema.ServiceDescription) *schema.Session {
 
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
@@ -64,7 +63,7 @@ func (ss *defaultSessionStorage) registerNextSession(desc *schema.ServiceDescrip
 	return session
 }
 
-func (ss *defaultSessionStorage) registerExistingSession(session *schema.Session) {
+func (ss *defaultSessionStorage) RegisterExistingSession(session *schema.Session) {
 
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
@@ -134,7 +133,7 @@ func (ss *defaultSessionStorage) Sessions(desc *schema.ServiceDescription) ([]*s
 	return sessions, nil
 }
 
-func newSessionStorage() sessionStorage {
+func NewSessionStorage() SessionStorage {
 	return &defaultSessionStorage{
 		mutex:  sync.RWMutex{},
 		values: make(map[string]map[string][]*schema.Session),
