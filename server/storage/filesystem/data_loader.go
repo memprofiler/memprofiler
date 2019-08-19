@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
@@ -18,7 +18,7 @@ type defaultDataLoader struct {
 	codec  codec
 	sd     *schema.SessionDescription
 	fd     *os.File
-	logger logrus.FieldLogger
+	logger *zerolog.Logger
 	wg     *sync.WaitGroup
 }
 
@@ -67,7 +67,7 @@ func newDataLoader(
 	subdirPath string,
 	sessionDesc *schema.SessionDescription,
 	codec codec,
-	logger logrus.FieldLogger,
+	logger *zerolog.Logger,
 	wg *sync.WaitGroup,
 ) (storage.DataLoader, error) {
 
@@ -78,18 +78,18 @@ func newDataLoader(
 		return nil, err
 	}
 
-	contextLogger := logger.WithFields(logrus.Fields{
+	contextLogger := logger.With().Fields(map[string]interface{}{
 		"type":        sessionDesc.GetServiceType(),
 		"instance":    sessionDesc.GetServiceInstance(),
 		"sessionDesc": storage.SessionIDToString(sessionDesc.GetSessionId()),
 		"measurement": filename,
-	})
+	}).Logger()
 
 	loader := &defaultDataLoader{
 		sd:     sessionDesc,
 		fd:     fd,
 		codec:  codec,
-		logger: contextLogger,
+		logger: &contextLogger,
 		wg:     wg,
 	}
 	return loader, nil

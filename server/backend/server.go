@@ -4,7 +4,7 @@ import (
 	"io"
 	"net"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -20,7 +20,7 @@ type server struct {
 	grpcServer      *grpc.Server
 	listener        net.Listener
 	protocolFactory protocolFactory
-	logger          logrus.FieldLogger
+	logger          *zerolog.Logger
 	errChan         chan<- error
 	cfg             *config.BackendConfig
 }
@@ -34,13 +34,13 @@ func (s *server) Stop() {
 }
 
 func (s *server) SaveReport(stream schema.MemprofilerBackend_SaveReportServer) error {
-	s.logger.Debug("Started request handling")
+	s.logger.Debug().Msg("Started request handling")
 
 	// create object that will be responsible for handling incoming messages
 	protocol := s.protocolFactory.save()
 	defer func() {
 		if err := protocol.close(); err != nil {
-			s.logger.WithError(err).Error("Failed to close save protocol")
+			s.logger.Err(err).Msg("Failed to close save protocol")
 		}
 	}()
 
@@ -59,7 +59,7 @@ func (s *server) SaveReport(stream schema.MemprofilerBackend_SaveReportServer) e
 			err = protocol.addMeasurement(request.GetMeasurement())
 		}
 		if err != nil {
-			s.logger.WithError(err).Error("Save error")
+			s.logger.Err(err).Msg("Save error")
 			return err
 		}
 	}

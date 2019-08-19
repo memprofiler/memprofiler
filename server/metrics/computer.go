@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/config"
@@ -30,7 +30,7 @@ type defaultComputer struct {
 	wg     sync.WaitGroup
 	ctx    context.Context
 	cancel context.CancelFunc
-	logger logrus.FieldLogger
+	logger *zerolog.Logger
 }
 
 // PutMeasurement stores measurement within internal storage
@@ -124,7 +124,7 @@ func (r *defaultComputer) populateSessionData(
 	r.wg.Add(1)
 	defer func() {
 		if err = dataLoader.Close(); err != nil {
-			r.logger.WithError(err).Error("Failed to close data loader")
+			r.logger.Err(err).Msg("Failed to close data loader")
 		}
 		r.wg.Done()
 	}()
@@ -143,7 +143,7 @@ func (r *defaultComputer) Quit() {
 }
 
 // NewComputer instantiates new runner
-func NewComputer(logger logrus.FieldLogger, storage storage.Storage, cfg *config.MetricsConfig) Computer {
+func NewComputer(logger *zerolog.Logger, storage storage.Storage, cfg *config.MetricsConfig) Computer {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &defaultComputer{
 		logger:     logger,

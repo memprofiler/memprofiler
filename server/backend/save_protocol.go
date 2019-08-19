@@ -5,7 +5,7 @@ package backend
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/locator"
@@ -28,8 +28,8 @@ type saveProtocol interface {
 	getSessionDescription() *schema.SessionDescription
 	getStorage() storage.Storage
 	getComputer() metrics.Computer
-	setLogger(logrus.FieldLogger)
-	getLogger() logrus.FieldLogger
+	setLogger(logger *zerolog.Logger)
+	getLogger() *zerolog.Logger
 	setDataSaver(storage.DataSaver) error
 	getDataSaver() storage.DataSaver
 }
@@ -49,7 +49,7 @@ type defaultSaveProtocol struct {
 	dataSaver          storage.DataSaver
 	storage            storage.Storage
 	computer           metrics.Computer
-	logger             logrus.FieldLogger
+	logger             *zerolog.Logger
 }
 
 var _ saveProtocol = (*defaultSaveProtocol)(nil)
@@ -74,9 +74,9 @@ func (p *defaultSaveProtocol) getComputer() metrics.Computer { return p.computer
 
 func (p *defaultSaveProtocol) getStorage() storage.Storage { return p.storage }
 
-func (p *defaultSaveProtocol) getLogger() logrus.FieldLogger { return p.logger }
+func (p *defaultSaveProtocol) getLogger() *zerolog.Logger { return p.logger }
 
-func (p *defaultSaveProtocol) setLogger(l logrus.FieldLogger) { p.logger = l }
+func (p *defaultSaveProtocol) setLogger(l *zerolog.Logger) { p.logger = l }
 
 func (p *defaultSaveProtocol) setDataSaver(dataSaver storage.DataSaver) error {
 	if p.dataSaver != nil {

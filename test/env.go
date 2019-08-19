@@ -3,33 +3,33 @@ package test
 import (
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 
 	"github.com/memprofiler/memprofiler/schema"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/memprofiler/memprofiler/server/common"
 	"github.com/memprofiler/memprofiler/server/config"
-	server_config "github.com/memprofiler/memprofiler/server/config"
-	server_launcher "github.com/memprofiler/memprofiler/server/launcher"
-	reporter_config "github.com/memprofiler/memprofiler/test/reporter/config"
-	reporter_launcher "github.com/memprofiler/memprofiler/test/reporter/launcher"
+	serverConfig "github.com/memprofiler/memprofiler/server/config"
+	serverLauncher "github.com/memprofiler/memprofiler/server/launcher"
+	reporterConfig "github.com/memprofiler/memprofiler/test/reporter/config"
+	reporterLauncher "github.com/memprofiler/memprofiler/test/reporter/launcher"
 )
 
 // env creates new testing environment (server with single reporter)
 type env struct {
 	server      common.Service                   // Memprofiler server
-	serverCfg   *server_config.Config            // Memprofiler server config
+	serverCfg   *serverConfig.Config             // Memprofiler server config
 	client      schema.MemprofilerFrontendClient // Memprofiler frontend client
-	clientConn  *grpc.ClientConn                 // Memrpofiler frontend client
+	clientConn  *grpc.ClientConn                 // Memprofiler frontend client
 	reporter    common.Service                   // Memprofiler backend client (sends memory usage reports to servers)
-	reporterCfg *reporter_config.Config          // Memprofiler backend client config
-	logger      logrus.FieldLogger
+	reporterCfg *reporterConfig.Config           // Memprofiler backend client config
+	logger      *zerolog.Logger
 	ctx         context.Context
 	cancel      context.CancelFunc
 	wg          sync.WaitGroup
@@ -40,15 +40,15 @@ func (e *env) Start() {
 }
 
 func (e *env) Stop() {
-	e.logger.Debug("Stopping reporter")
+	e.logger.Debug().Msg("Stopping reporter")
 	e.reporter.Stop()
-	e.logger.Debug("Stopping frontend client connection")
+	e.logger.Debug().Msg("Stopping frontend client connection")
 	if err := e.clientConn.Close(); err != nil {
-		e.logger.WithError(err).Error("failed to close client conn")
+		e.logger.Err(err).Msg("failed to close client conn")
 	}
-	e.logger.Debug("Stopping server")
+	e.logger.Debug().Msg("Stopping server")
 	e.server.Stop()
-	e.logger.Debug("Terminating loops")
+	e.logger.Debug().Msg("Terminating loops")
 	e.cancel()
 	e.wg.Wait()
 }
@@ -77,13 +77,13 @@ func newEnv(projectPath, serverConfigPath string) (*env, error) {
 			return
 		case err = <-errChan:
 			if err != nil {
-				l.logger.Fatal(err)
+				l.logger.Fatal().Err(err).Send()
 			}
 		}
 	}()
 
 	// run memprofiler server
-	l.logger.Info("Starting memprofiler server")
+	l.logger.Info().Msg("Starting memprofiler server")
 	l.server, l.serverCfg, err = runServer(l.logger, serverConfigPath, errChan)
 	if err != nil {
 		return nil, err
@@ -91,7 +91,7 @@ func newEnv(projectPath, serverConfigPath string) (*env, error) {
 	l.server.Start()
 
 	// run memprofiler client
-	l.logger.Info("Starting memprofiler client")
+	l.logger.Info().Msg("Starting memprofiler client")
 	l.clientConn, err = grpc.Dial(l.serverCfg.Frontend.ListenEndpoint, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		return nil, err
@@ -99,7 +99,7 @@ func newEnv(projectPath, serverConfigPath string) (*env, error) {
 	l.client = schema.NewMemprofilerFrontendClient(l.clientConn)
 
 	// run test reporter
-	l.logger.Info("Starting testing reporter")
+	l.logger.Info().Msg("Starting testing reporter")
 	reporterCfgPath := filepath.Join(projectPath, "test/reporter/config/linear_growth.yml")
 	l.reporter, l.reporterCfg, err = runReporter(l.logger, reporterCfgPath, errChan)
 	if err != nil {
@@ -110,11 +110,11 @@ func newEnv(projectPath, serverConfigPath string) (*env, error) {
 	return l, nil
 }
 
-func runServer(logger logrus.FieldLogger, cfgPath string, errChan chan<- error,
-) (common.Service, *server_config.Config, error) {
+func runServer(logger *zerolog.Logger, cfgPath string, errChan chan<- error,
+) (common.Service, *serverConfig.Config, error) {
 
 	// parse base config
-	cfg, err := server_config.FromYAMLFile(cfgPath)
+	cfg, err := serverConfig.FromYAMLFile(cfgPath)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -128,22 +128,30 @@ func runServer(logger logrus.FieldLogger, cfgPath string, errChan chan<- error,
 		cfg.TSDB.DataDir = dataDir
 	}
 
-	l, err := server_launcher.New(logger.WithField("side", "server"), cfg, errChan)
+	subLogger := logger.With().Fields(map[string]interface{}{
+		"side": "server",
+	}).Logger()
+
+	l, err := serverLauncher.New(&subLogger, cfg, errChan)
 	if err != nil {
 		return nil, nil, err
 	}
 	return l, cfg, nil
 }
 
-func runReporter(logger logrus.FieldLogger, cfgPath string, errChan chan<- error,
-) (common.Service, *reporter_config.Config, error) {
+func runReporter(logger *zerolog.Logger, cfgPath string, errChan chan<- error,
+) (common.Service, *reporterConfig.Config, error) {
 
-	cfg, err := reporter_config.FromYAMLFile(cfgPath)
+	cfg, err := reporterConfig.FromYAMLFile(cfgPath)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	l, err := reporter_launcher.New(logger.WithField("side", "reporter"), cfg, errChan)
+	subLogger := logger.With().Fields(map[string]interface{}{
+		"side": "reporter",
+	}).Logger()
+
+	l, err := reporterLauncher.New(&subLogger, cfg, errChan)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -151,8 +159,8 @@ func runReporter(logger logrus.FieldLogger, cfgPath string, errChan chan<- error
 	return l, cfg, nil
 }
 
-func newLogger() logrus.FieldLogger {
-	logger := logrus.New()
-	logger.Level = logrus.DebugLevel
-	return logger
+func newLogger() *zerolog.Logger {
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	return &logger
 }

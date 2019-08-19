@@ -1,14 +1,14 @@
 package metrics
 
 import (
-	"io/ioutil"
 	"math"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/memprofiler/memprofiler/schema"
@@ -16,9 +16,7 @@ import (
 
 // A trivial case, when every indicator is incremented once per second within a single location
 func TestSessionData_LinearGrowth(t *testing.T) {
-
-	stubLogger := logrus.New()
-	stubLogger.Out = ioutil.Discard
+	stubLogger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	cs := &schema.Callstack{
 		Frames: []*schema.StackFrame{
@@ -86,7 +84,7 @@ func TestSessionData_LinearGrowth(t *testing.T) {
 	sixtySeconds := time.Minute
 	averagingWindows := []time.Duration{fiveSeconds, twentySeconds, sixtySeconds}
 
-	container := newSessionData(stubLogger, averagingWindows)
+	container := newSessionData(&stubLogger, averagingWindows)
 	for _, mm := range mms {
 		err := container.appendMeasurement(mm)
 		if !assert.NoError(t, err) {

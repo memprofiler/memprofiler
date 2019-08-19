@@ -1,8 +1,6 @@
 package backend
 
 import (
-	"github.com/sirupsen/logrus"
-
 	"github.com/memprofiler/memprofiler/schema"
 )
 
@@ -38,13 +36,13 @@ func (s *saveStateAwaitDescription) addDescription(desc *schema.ServiceDescripti
 	}
 
 	// annotate logger and save it for further usage
-	logger := s.p.getLogger().WithFields(logrus.Fields{
+	logger := s.p.getLogger().With().Fields(map[string]interface{}{
 		"service_type":     desc.GetServiceType(),
 		"service_instance": desc.GetServiceInstance(),
 		"session_id":       dataSaver.SessionID(),
-	})
-	s.p.setLogger(logger)
-	logger.Info("Received greeting message from client")
+	}).Logger()
+	s.p.setLogger(&logger)
+	logger.Info().Msg("Received greeting message from client")
 
 	s.switchState(awaitMeasurement)
 	return nil

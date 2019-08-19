@@ -3,8 +3,9 @@ package main
 import (
 	"flag"
 	"log"
+	"os"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/server/config"
 	"github.com/memprofiler/memprofiler/server/launcher"
@@ -33,8 +34,8 @@ func main() {
 	utils.BlockOnSignal(logger, errChan)
 }
 
-func newLogger(cfg *config.LoggingConfig) *logrus.Logger {
-	logger := logrus.New()
-	logger.SetLevel(cfg.Level)
-	return logger
+func newLogger(cfg *config.LoggingConfig) *zerolog.Logger {
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
+	zerolog.SetGlobalLevel(cfg.Level)
+	return &logger
 }

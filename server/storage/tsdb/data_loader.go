@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/prometheus/tsdb/labels"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
@@ -22,7 +22,7 @@ type defaultDataLoader struct {
 	storage localTSDB.TSDB
 	codec   codec
 	sd      *schema.SessionDescription
-	logger  logrus.FieldLogger
+	logger  *zerolog.Logger
 	wg      *sync.WaitGroup
 }
 
@@ -66,22 +66,22 @@ func (l *defaultDataLoader) Close() error {
 func newDataLoader(
 	sessionDesc *schema.SessionDescription,
 	codec codec,
-	logger logrus.FieldLogger,
+	logger *zerolog.Logger,
 	wg *sync.WaitGroup,
 	stor prometheus.TSDB,
 ) (storage.DataLoader, error) {
 	// open file to load records
-	contextLogger := logger.WithFields(logrus.Fields{
+	contextLogger := logger.With().Fields(map[string]interface{}{
 		"type":        sessionDesc.GetServiceType(),
 		"instance":    sessionDesc.GetServiceInstance(),
 		"sessionDesc": storage.SessionIDToString(sessionDesc.GetSessionId()),
-	})
+	}).Logger()
 
 	loader := &defaultDataLoader{
 		storage: stor,
 		sd:      sessionDesc,
 		codec:   codec,
-		logger:  contextLogger,
+		logger:  &contextLogger,
 		wg:      wg,
 	}
 	return loader, nil

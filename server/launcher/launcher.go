@@ -1,7 +1,7 @@
 package launcher
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/server/backend"
 	"github.com/memprofiler/memprofiler/server/common"
@@ -12,7 +12,7 @@ import (
 
 type Launcher struct {
 	locator  *locator.Locator
-	logger   logrus.FieldLogger
+	logger   *zerolog.Logger
 	cfg      *config.Config
 	services services
 	errChan  chan<- error
@@ -33,7 +33,7 @@ func (l *Launcher) Stop() {
 	l.services.stop(l.locator.Logger)
 }
 
-func New(logger logrus.FieldLogger, cfg *config.Config, errChan chan<- error) (*Launcher, error) {
+func New(logger *zerolog.Logger, cfg *config.Config, errChan chan<- error) (*Launcher, error) {
 
 	// run subsystems
 	l, err := locator.NewLocator(logger, cfg)
@@ -52,16 +52,16 @@ func New(logger logrus.FieldLogger, cfg *config.Config, errChan chan<- error) (*
 
 type services map[string]common.Service
 
-func (ss services) start(logger logrus.FieldLogger) {
+func (ss services) start(logger *zerolog.Logger) {
 	for label, service := range ss {
-		logger.WithField("service", label).Info("Starting service")
+		logger.Info().Str("service", label).Msg("Starting service")
 		go service.Start()
 	}
 }
 
-func (ss services) stop(logger logrus.FieldLogger) {
+func (ss services) stop(logger *zerolog.Logger) {
 	for label, service := range ss {
-		logger.WithField("service", label).Info("Stopping service")
+		logger.Info().Str("service", label).Msg("Stopping service")
 		service.Stop()
 	}
 }
@@ -83,14 +83,14 @@ func runServices(
 	)
 
 	// 1. GRPC Backend
-	locator.Logger.Debug("Starting backend server")
+	locator.Logger.Debug().Msg("Starting backend server")
 	ss[labelBackend], err = backend.NewServer(cfg.Backend, locator, errChan)
 	if err != nil {
 		return nil, err
 	}
 
 	// 2. Frontend
-	locator.Logger.Debug("Starting frontend server")
+	locator.Logger.Debug().Msg("Starting frontend server")
 	ss[labelFrontend], err = frontend.NewServer(cfg.Frontend, locator, errChan)
 	if err != nil {
 		return nil, err

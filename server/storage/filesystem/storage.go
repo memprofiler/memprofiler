@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/config"
@@ -29,7 +29,7 @@ type defaultStorage struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
-	logger logrus.FieldLogger
+	logger *zerolog.Logger
 }
 
 const (
@@ -139,7 +139,7 @@ func (s *defaultStorage) populateSessionStorage() error {
 }
 
 // NewStorage builds new storage that keeps measurements in separate files
-func NewStorage(logger logrus.FieldLogger, cfg *config.FilesystemStorageConfig) (storage.Storage, error) {
+func NewStorage(logger *zerolog.Logger, cfg *config.FilesystemStorageConfig) (storage.Storage, error) {
 
 	// create data directory if not exists
 	if _, err := os.Stat(cfg.DataDir); err != nil {
