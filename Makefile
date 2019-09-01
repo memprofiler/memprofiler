@@ -29,13 +29,22 @@ env:
 
 	# install plugin
 	go get -u github.com/golang/protobuf/protoc-gen-go
+	go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
 
 	# install tools
 	go get -u -v golang.org/x/tools/cmd/stringer
 	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b /usr/local/bin v${GOLANGCI_LINT_VERSION}
 
 generate:
-	protoc -I schema schema/*.proto  --go_out=plugins=grpc:schema
+	protoc -I schema \
+	  -I ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+	  --go_out=plugins=grpc:schema schema/*.proto
+	protoc -I schema \
+	  -I /usr/local/include -I. \
+	  -I ${GOPATH}/src \
+	  -I ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+	  --grpc-gateway_out=logtostderr=true:schema \
+	  schema/*.proto
 	go generate ./...
 
 build:

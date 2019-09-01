@@ -5,17 +5,38 @@ package schema;
 import "common.proto";
 import "backend.proto";
 import "google/protobuf/duration.proto";
+import "google/api/annotations.proto";
+
 
 // MemprofilerFrontend - API for web-clients
 service MemprofilerFrontend {
     // GetServices returns the list of registered services
-    rpc GetServices (GetServicesRequest) returns (GetServicesResponse) {};
+    rpc GetServices (GetServicesRequest) returns (GetServicesResponse) {
+        option (google.api.http) = {
+            get: "/services"
+        };
+    };
+
     // GetInstances returns the list of service instances
-    rpc GetInstances (GetInstancesRequest) returns (GetInstancesResponse) {};
+    rpc GetInstances (GetInstancesRequest) returns (GetInstancesResponse) {
+        option (google.api.http) = {
+            get: "/instances"
+        };
+    };
+
     // GetSessions returns the list of available profiling sessions for a service instance
-    rpc GetSessions (GetSessionsRequest) returns (GetSessionsResponse) {};
+    rpc GetSessions (GetSessionsRequest) returns (GetSessionsResponse) {
+        option (google.api.http) = {
+            get: "/sessions"
+        };
+    };
+
     // SubscribeForSession returns the stream of session updates with fresh trend values, if it's still alive
-    rpc SubscribeForSession(SubscribeForSessionRequest) returns (stream SessionMetrics) {};
+    rpc SubscribeForSession(SubscribeForSessionRequest) returns (stream SessionMetrics) {
+        option (google.api.http) = {
+            get: "/subscribe"
+        };
+    };
 }
 
 // -------- GetServices ---------
@@ -26,7 +47,7 @@ message GetServicesRequest {
 
 // GetServicesResponse is a response body for GetServices method
 message GetServicesResponse {
-    // service_types - services that ever pushed data to this memprofiler
+    // service_types - services that had ever pushed data to this memprofiler
     repeated string service_types = 1;
 }
 
