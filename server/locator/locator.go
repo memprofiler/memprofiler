@@ -1,7 +1,7 @@
 package locator
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc/grpclog"
 
 	"github.com/memprofiler/memprofiler/server/config"
@@ -16,11 +16,11 @@ import (
 type Locator struct {
 	Storage  storage.Storage
 	Computer metrics.Computer
-	Logger   logrus.FieldLogger
+	Logger   *zerolog.Logger
 }
 
 // NewLocator creates new Locator
-func NewLocator(logger logrus.FieldLogger, cfg *config.Config) (*Locator, error) {
+func NewLocator(logger *zerolog.Logger, cfg *config.Config) (*Locator, error) {
 	var (
 		l   Locator
 		err error
@@ -30,10 +30,10 @@ func NewLocator(logger logrus.FieldLogger, cfg *config.Config) (*Locator, error)
 	l.Logger = logger
 
 	// set global GRPC logger
-	grpclog.SetLoggerV2(utils.LogrusToGRPCLogger(l.Logger)) // FIXME: replace to V2
+	grpclog.SetLoggerV2(utils.ZeroLogToGRPCLogger(l.Logger)) // FIXME: replace to V2
 
 	// 2. run storage
-	l.Logger.Debug("Starting storage")
+	l.Logger.Debug().Msg("Starting storage")
 	switch cfg.StorageType {
 	case config.StorageTypeFilesystem:
 		l.Storage, err = filesystem.NewStorage(l.Logger, cfg.Filesystem)
@@ -45,7 +45,7 @@ func NewLocator(logger logrus.FieldLogger, cfg *config.Config) (*Locator, error)
 	}
 
 	// 3. run measurement collector
-	l.Logger.Debug("Starting metrics computer")
+	l.Logger.Debug().Msg("Starting metrics computer")
 	l.Computer = metrics.NewComputer(l.Logger, l.Storage, cfg.Metrics)
 
 	return &l, err
@@ -53,8 +53,8 @@ func NewLocator(logger logrus.FieldLogger, cfg *config.Config) (*Locator, error)
 
 // Quit terminates subsystems gracefully
 func (l *Locator) Quit() {
-	l.Logger.Debug("Stopping storage")
+	l.Logger.Debug().Msg("Stopping storage")
 	l.Storage.Quit()
-	l.Logger.Debug("Stopping metrics computer")
+	l.Logger.Debug().Msg("Stopping metrics computer")
 	l.Computer.Quit()
 }

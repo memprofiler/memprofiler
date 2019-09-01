@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/memprofiler/memprofiler/schema"
@@ -223,8 +223,7 @@ func compareLocationsSets(l1, l2 []*schema.Location) bool {
 }
 
 func newStorage(t *testing.T, isTSDB bool) storage.Storage {
-	logger := logrus.New()
-	logger.Out = os.Stdout
+	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 	// create new storage in tmp dir
 	dataDir, err := ioutil.TempDir("/tmp", "memprofiler")
@@ -232,7 +231,7 @@ func newStorage(t *testing.T, isTSDB bool) storage.Storage {
 
 	defer func() {
 		if err = os.RemoveAll(dataDir); err != nil {
-			logger.WithError(err).Fatal("Failed to remove dir")
+			logger.Fatal().Err(err).Msg("Failed to remove dir")
 		}
 	}()
 
@@ -241,13 +240,13 @@ func newStorage(t *testing.T, isTSDB bool) storage.Storage {
 		cfg := &config.TSDBStorageConfig{
 			DataDir: dataDir,
 		}
-		s, err = tsdb.NewStorage(logger, cfg)
+		s, err = tsdb.NewStorage(&logger, cfg)
 	} else {
 		cfg := &config.FilesystemStorageConfig{
 			DataDir:   dataDir,
 			SyncWrite: false,
 		}
-		s, err = filesystem.NewStorage(logger, cfg)
+		s, err = filesystem.NewStorage(&logger, cfg)
 	}
 	assert.NotNil(t, s)
 	assert.NoError(t, err)

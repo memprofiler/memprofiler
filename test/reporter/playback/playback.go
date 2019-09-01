@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/server/common"
 	"github.com/memprofiler/memprofiler/test/reporter/config"
@@ -65,7 +65,7 @@ func (p *defaultPlayback) loop() {
 	}
 }
 
-func New(logger logrus.FieldLogger, scenario *config.Scenario, errChan chan<- error) Playback {
+func New(logger *zerolog.Logger, scenario *config.Scenario, errChan chan<- error) Playback {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	pb := &defaultPlayback{

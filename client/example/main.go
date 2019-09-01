@@ -1,9 +1,10 @@
 package example
 
 import (
+	"os"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/client"
 	"github.com/memprofiler/memprofiler/schema"
@@ -26,11 +27,13 @@ func Example() {
 		Verbose: false,
 	}
 
+	log := zerolog.New(os.Stderr).With().Timestamp().Logger()
+
 	// you can implement your own logger
-	log := client.LoggerFromLogrus(logrus.New())
+	logger := client.LoggerFromZeroLog(&log)
 
 	// run profiler and stop it explicitly on exit
-	profiler, err := client.NewProfiler(log, cfg)
+	profiler, err := client.NewProfiler(logger, cfg)
 	if err != nil {
 		panic(err)
 	}

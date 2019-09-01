@@ -1,7 +1,7 @@
 package launcher
 
 import (
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/client"
 	"github.com/memprofiler/memprofiler/server/common"
@@ -12,7 +12,7 @@ import (
 type launcher struct {
 	profiler client.Profiler
 	playback playback.Playback
-	logger   logrus.FieldLogger
+	logger   *zerolog.Logger
 }
 
 func (l *launcher) Start() {
@@ -21,16 +21,16 @@ func (l *launcher) Start() {
 }
 
 func (l *launcher) Stop() {
-	l.logger.Debug("Stopping playback")
+	l.logger.Debug().Msg("Stopping playback")
 	l.playback.Stop()
-	l.logger.Debug("Stopping profiler")
+	l.logger.Debug().Msg("Stopping profiler")
 	l.profiler.Stop()
 }
 
-func New(logger logrus.FieldLogger, cfg *config.Config, errChan chan<- error) (common.Service, error) {
+func New(logger *zerolog.Logger, cfg *config.Config, errChan chan<- error) (common.Service, error) {
 
 	// create memprofiler profiler
-	profilerLogger := client.LoggerFromLogrus(logger)
+	profilerLogger := client.LoggerFromZeroLog(logger)
 	profiler, err := client.NewProfiler(profilerLogger, cfg.Client)
 	if err != nil {
 		return nil, err

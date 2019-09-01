@@ -5,11 +5,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 )
 
 // BlockOnSignal is useful function for main goroutine
-func BlockOnSignal(logger logrus.FieldLogger, errChan <-chan error) {
+func BlockOnSignal(logger *zerolog.Logger, errChan <-chan error) {
 
 	// wait for signals or fatal errors
 	signalChan := make(chan os.Signal, 1)
@@ -18,12 +18,12 @@ func BlockOnSignal(logger logrus.FieldLogger, errChan <-chan error) {
 
 	select {
 	case <-signalChan:
-		logger.Info("Interrupt signal has been received")
+		logger.Info().Msg("Interrupt signal has been received")
 	case err := <-errChan:
 		if err != nil {
-			logger.WithError(err).Error("Fatal error, going to terminate server")
+			logger.Err(err).Msg("Fatal error, going to terminate server")
 		} else {
-			logger.Warning("Going to terminate server")
+			logger.Warn().Msg("Going to terminate server")
 		}
 	}
 }

@@ -8,7 +8,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/storage"
@@ -23,7 +23,7 @@ type sessionData struct {
 	sessionMetrics   *schema.SessionMetrics   // latest available session metrics (potentially outdated)
 	averagingWindows []time.Duration          // list of time spans used to compute trends
 	outdated         bool                     // if metrics should be recomputed by demand
-	logger           logrus.FieldLogger
+	logger           *zerolog.Logger
 }
 
 func (sd *sessionData) populate(
@@ -43,7 +43,7 @@ LOOP:
 				break LOOP
 			}
 			if result.Err != nil {
-				sd.logger.WithError(result.Err).Error("failed to get result from loader")
+				sd.logger.Err(result.Err).Msg("failed to get result from loader")
 			} else if err := sd.appendMeasurement(result.Measurement); err != nil {
 				return err
 			}
@@ -159,7 +159,7 @@ func (sd *sessionData) computeSessionMetrics() *schema.SessionMetrics {
 }
 
 // newSessionData instantiates new
-func newSessionData(logger logrus.FieldLogger, averagingWindows []time.Duration) *sessionData {
+func newSessionData(logger *zerolog.Logger, averagingWindows []time.Duration) *sessionData {
 	return &sessionData{
 		locations:        make(map[string]*locationData),
 		lifetime:         averagingWindows[len(averagingWindows)-1],

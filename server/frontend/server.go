@@ -5,6 +5,8 @@ import (
 	"net"
 	"sort"
 
+	"github.com/rs/zerolog"
+
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/common"
 	"github.com/memprofiler/memprofiler/server/config"
@@ -12,7 +14,6 @@ import (
 	"github.com/memprofiler/memprofiler/server/metrics"
 	"github.com/memprofiler/memprofiler/server/storage"
 
-	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -26,7 +27,7 @@ type server struct {
 	computer   metrics.Computer
 	storage    storage.Storage
 	errChan    chan<- error
-	logger     logrus.FieldLogger
+	logger     *zerolog.Logger
 }
 
 func (s *server) GetServices(
@@ -108,10 +109,14 @@ func NewServer(
 		return nil, err
 	}
 
+	subLogger := locator.Logger.With().Fields(map[string]interface{}{
+		"subsystem": "frontend",
+	}).Logger()
+
 	s := &server{
 		computer: locator.Computer,
 		storage:  locator.Storage,
-		logger:   locator.Logger.WithField("subsystem", "frontend"),
+		logger:   &subLogger,
 		errChan:  errChan,
 		listener: listener,
 	}
@@ -137,7 +142,7 @@ func (s *server) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), terminationTimeout)
 	defer cancel()
 	if err := s.httpServer.Shutdown(ctx); err != nil && err != ctx.Err() {
-		s.logger.WithError(err).Error("Backend shutdown error")
+		s.logger.Error(err).Msg("Backend shutdown error")
 	}
 }
 
@@ -148,10 +153,14 @@ func NewServer(
 	errChan chan<- error,
 ) (common.Service, error) {
 
+	subLogger := locator.Logger.With().Fields(map[string]interface{}{
+		"subsystem": "frontend",
+	}).Logger()
+
 	s := &server{
 		computer: locator.Computer,
 		storage:  locator.Storage,
-		logger:   locator.Logger.WithField("subsystem", "frontend"),
+		logger:   &subLogger,
 		errChan:  errChan,
 	}
 
@@ -161,7 +170,7 @@ func NewServer(
 
 	// Dump to logs resource list
 	for _, resource := range grpcweb.ListGRPCResources(grpcServer) {
-		s.logger.WithField("URL", resource).Debug("HTTP Frontend server resource")
+		s.logger.Debug().Str("URL", resource).Msg("HTTP Frontend server resource")
 	}
 
 	handler := func(resp http.ResponseWriter, req *http.Request) {

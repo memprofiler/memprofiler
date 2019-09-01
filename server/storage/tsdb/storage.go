@@ -5,8 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/go-kit/kit/log"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/config"
@@ -24,7 +23,7 @@ type tsdbStorage struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
-	logger logrus.FieldLogger
+	logger *zerolog.Logger
 	stor   prometheus.TSDB
 }
 
@@ -58,12 +57,11 @@ func (s *tsdbStorage) Quit() {
 }
 
 // NewStorage builds new storage that keeps measurements in tsdb
-func NewStorage(logger logrus.FieldLogger, cfg *config.TSDBStorageConfig) (storage.Storage, error) {
-	// TODO: wrap to logrus interface
-	var (
-		writer  = log.NewSyncWriter(os.Stdout)
-		logger2 = log.NewLogfmtLogger(writer)
-	)
+func NewStorage(logger *zerolog.Logger, cfg *config.TSDBStorageConfig) (storage.Storage, error) {
+	goKitWrapper, err := NewGoKitLogWrapper(logger)
+	if err != nil {
+		return nil, err
+	}
 
 	// create data directory if not exists
 	if _, err := os.Stat(cfg.DataDir); err != nil {
@@ -77,7 +75,7 @@ func NewStorage(logger logrus.FieldLogger, cfg *config.TSDBStorageConfig) (stora
 	}
 
 	// create storage
-	stor, err := prometheus.OpenTSDB(cfg.DataDir, logger2)
+	stor, err := prometheus.OpenTSDB(cfg.DataDir, goKitWrapper)
 	if err != nil {
 		return nil, err
 	}
