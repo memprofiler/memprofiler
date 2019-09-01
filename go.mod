@@ -27,7 +27,7 @@ require (
 	golang.org/x/sys v0.0.0-20190913121621-c3b328c6e5a7 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
-	gonum.org/v1/gonum v0.0.0-20190911200027-40d3308efe80
+	gonum.org/v1/gonum v0.0.0-20190914104405-51b431f5b9c5
 	gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e // indirect
 	google.golang.org/genproto v0.0.0-20190911173649-1774047e7e51 // indirect
 	google.golang.org/grpc v1.23.1

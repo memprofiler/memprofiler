@@ -17,10 +17,10 @@ func TestIntegration(t *testing.T) {
 	var (
 		projectPath             = filepath.Join(build.Default.GOPATH, "src/github.com/memprofiler/memprofiler")
 		serverCfgPathFilesystem = filepath.Join(projectPath, "server/config/example_filesystem.yml")
-		// serverCfgPathTSDB       = filepath.Join(projectPath, "server/config/example_tsdb.yml")
+		serverCfgPathTSDB       = filepath.Join(projectPath, "server/config/example_tsdb.yml")
 	)
 	t.Run("filesystemStorage", testTemplate(projectPath, serverCfgPathFilesystem))
-	// t.Run("tsdbStorage", testTemplate(projectPath, serverCfgPathTSDB))
+	t.Run("tsdbStorage", testTemplate(projectPath, serverCfgPathTSDB))
 }
 
 func testTemplate(projectPath, serverConfigPath string) func(t *testing.T) {

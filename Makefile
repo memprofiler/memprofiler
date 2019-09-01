@@ -32,12 +32,13 @@ env:
 
 	# install tools
 	go get -u -v golang.org/x/tools/cmd/stringer
-	protoc-go-inject-tag -input=./schema/common.pb.go
 	go get -u -v github.com/favadi/protoc-go-inject-tag
+	protoc-go-inject-tag -input=./schema/common.pb.go
 	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b /usr/local/bin v${GOLANGCI_LINT_VERSION}
 
 generate:
 	protoc -I schema schema/*.proto  --go_out=plugins=grpc:schema
+	protoc-go-inject-tag -input=./schema/common.pb.go
 	go generate ./...
 
 build:

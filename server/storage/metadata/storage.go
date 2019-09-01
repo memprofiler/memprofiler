@@ -93,7 +93,10 @@ func (s *storageSQLite) GetInstances(ctx context.Context, serviceName string) ([
 	return result, nil
 }
 
-func (s *storageSQLite) GetSessions(ctx context.Context, instanceDesc *schema.InstanceDescription) ([]*schema.Session, error) {
+func (s *storageSQLite) GetSessions(
+	ctx context.Context,
+	instanceDesc *schema.InstanceDescription,
+) ([]*schema.Session, error) {
 	var result []*schema.Session
 
 	callback := func(tx *sql.Tx) error {
@@ -170,7 +173,10 @@ func parseSQLiteTimeToTimestamp(src sql.NullString) (*timestamp.Timestamp, error
 	return result, nil
 }
 
-func (s *storageSQLite) StartSession(ctx context.Context, instanceDesc *schema.InstanceDescription) (*schema.SessionDescription, error) {
+func (s *storageSQLite) StartSession(
+	ctx context.Context,
+	instanceDesc *schema.InstanceDescription,
+) (*schema.SessionDescription, error) {
 	var sessionDesc *schema.SessionDescription
 
 	callback := func(tx *sql.Tx) error {
@@ -184,7 +190,11 @@ func (s *storageSQLite) StartSession(ctx context.Context, instanceDesc *schema.I
 			return errors.Wrap(err, "start session: insert service")
 		}
 		var serviceID int64
-		err = tx.QueryRowContext(ctx, `SELECT id FROM services WHERE name == ? `, instanceDesc.GetServiceName()).Scan(&serviceID)
+		err = tx.QueryRowContext(
+			ctx,
+			`SELECT id FROM services WHERE name == ? `,
+			instanceDesc.GetServiceName(),
+		).Scan(&serviceID)
 		if err != nil {
 			return errors.Wrap(err, "start session: select service id")
 		}
@@ -266,10 +276,8 @@ func (s *storageSQLite) wrapTx(ctx context.Context, txFunc func(*sql.Tx) error) 
 			if txErr := tx.Rollback(); txErr != nil {
 				s.logger.Error().Err(err).Msg("Transaction rollback error")
 			}
-		} else {
-			if txErr := tx.Commit(); txErr != nil {
-				s.logger.Error().Err(err).Msg("Transaction commit error")
-			}
+		} else if txErr := tx.Commit(); txErr != nil {
+			s.logger.Error().Err(err).Msg("Transaction commit error")
 		}
 	}()
 	err = txFunc(tx)

@@ -30,7 +30,7 @@ type defaultDataSaver struct {
 // Save store Measurement to TSDB
 func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 	var (
-		sessionLabel = labels.Label{Name: sessionLabelName, Value: fmt.Sprintf("%v", s.SessionDescription())}
+		sessionLabel = labels.Label{Name: sessionLabelName, Value: fmt.Sprintf("%v", s.SessionDescription().GetId())}
 		location     = mm.GetLocations()
 	)
 

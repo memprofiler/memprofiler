@@ -64,13 +64,12 @@ func TestStorageWriteReadSimpleLocations(t *testing.T) {
 			input:   input,
 			output:  input,
 		},
-		// Не робiт:
-		// {
-		// 	name:    "tsdb",
-		// 	storage: newStorage(t, config.TSDBDataStorage),
-		// 	input:   input,
-		// 	output:  input,
-		// },
+		{
+			name:    "tsdb",
+			storage: newStorage(t, config.TSDBDataStorage),
+			input:   input,
+			output:  input,
+		},
 	}
 	for _, tc := range cases {
 		if t.Failed() {

@@ -49,8 +49,8 @@ func TestStorage(t *testing.T) {
 				return
 			}
 			assert.Equal(t, int64(i+1), sessionDesc.Id)
-			assert.Equal(t, instanceDesc.InstanceName, sessionDesc.Instance.InstanceName)
-			assert.Equal(t, instanceDesc.ServiceName, sessionDesc.Instance.ServiceName)
+			assert.Equal(t, instanceDesc.InstanceName, sessionDesc.InstanceDescription.InstanceName)
+			assert.Equal(t, instanceDesc.ServiceName, sessionDesc.InstanceDescription.ServiceName)
 		}
 	})
 
@@ -92,7 +92,7 @@ func TestStorage(t *testing.T) {
 
 			session := sessions[0]
 
-			assert.Equal(t, instanceDesc, session.Description.Instance)
+			assert.Equal(t, instanceDesc, session.Description.InstanceDescription)
 			assert.Equal(t, int64(i+1), session.Description.Id)
 
 			actualStartTime, err := ptypes.Timestamp(session.Metadata.StartedAt)

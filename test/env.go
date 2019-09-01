@@ -129,12 +129,14 @@ func runServer(
 
 	// override data dir
 	dataDir := fmt.Sprintf("/tmp/memprofiler_%v", time.Now().Format("20060102150405"))
+	cfg.MetadataStorage.DataDir = dataDir
 	switch cfg.DataStorage.Type() {
 	case config.FilesystemDataStorage:
 		cfg.DataStorage.Filesystem.DataDir = dataDir
 	case config.TSDBDataStorage:
 		cfg.DataStorage.TSDB.DataDir = dataDir
 	}
+	logger.Info().Msgf("Test results stored at: %v", dataDir)
 
 	subLogger := logger.With().Fields(map[string]interface{}{
 		"side": "server",

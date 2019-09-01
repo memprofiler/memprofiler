@@ -104,7 +104,6 @@ func (s *server) SubscribeForSession(
 			return nil
 		}
 	}
-	return nil
 }
 
 func (s *server) Start() { s.errChan <- s.grpcServer.Serve(s.listener) }
