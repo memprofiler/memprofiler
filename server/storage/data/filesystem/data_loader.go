@@ -8,10 +8,11 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/memprofiler/memprofiler/server/storage/data"
+
 	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/schema"
-	"github.com/memprofiler/memprofiler/server/storage"
 )
 
 type defaultDataLoader struct {
@@ -26,10 +27,10 @@ const (
 	loadChanCapacity = 256
 )
 
-func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResult, error) {
+func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *data.LoadResult, error) {
 
-	// prepare bufferized channel for results
-	results := make(chan *storage.LoadResult, loadChanCapacity)
+	// prepare buffered channel for results
+	results := make(chan *data.LoadResult, loadChanCapacity)
 
 	scanner := bufio.NewScanner(l.fd)
 	scanner.Split(bufio.ScanLines)
@@ -52,37 +53,37 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 }
 
 // loadMeasurement disk
-func (l *defaultDataLoader) loadMeasurement(data []byte) *storage.LoadResult {
+func (l *defaultDataLoader) loadMeasurement(in []byte) *data.LoadResult {
 	var receiver schema.Measurement
-	err := l.codec.decode(bytes.NewReader(data), &receiver)
-	return &storage.LoadResult{Measurement: &receiver, Err: err}
+	err := l.codec.decode(bytes.NewReader(in), &receiver)
+	return &data.LoadResult{Measurement: &receiver, Err: err}
 }
 
 func (l *defaultDataLoader) Close() error {
-	defer l.wg.Done()
+	defer func() {
+		l.wg.Done()
+	}()
 	return l.fd.Close()
 }
 
 func newDataLoader(
-	subdirPath string,
+	dataFilePath string,
 	sessionDesc *schema.SessionDescription,
 	codec codec,
 	logger *zerolog.Logger,
 	wg *sync.WaitGroup,
-) (storage.DataLoader, error) {
+) (data.Loader, error) {
 
 	// open file to load records
-	filename := filepath.Join(subdirPath, "data")
-	fd, err := os.Open(filename)
+	fd, err := os.Open(filepath.Clean(dataFilePath))
 	if err != nil {
 		return nil, err
 	}
 
 	contextLogger := logger.With().Fields(map[string]interface{}{
-		"type":        sessionDesc.GetServiceType(),
-		"instance":    sessionDesc.GetServiceInstance(),
-		"sessionDesc": storage.SessionIDToString(sessionDesc.GetSessionId()),
-		"measurement": filename,
+		"service":    sessionDesc.InstanceDescription.ServiceName,
+		"instance":   sessionDesc.InstanceDescription.InstanceName,
+		"session_id": sessionDesc.Id,
 	}).Logger()
 
 	loader := &defaultDataLoader{

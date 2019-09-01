@@ -11,7 +11,7 @@ import (
 )
 
 // UpdateMemoryUsage updates MemoryUsage fields with values obtained from runtime
-func UpdateMemoryUsage(mu *schema.MemoryUsage, r runtime.MemProfileRecord) {
+func UpdateMemoryUsage(mu *schema.MemoryUsage, r *runtime.MemProfileRecord) {
 	mu.AllocObjects += r.AllocObjects
 	mu.AllocBytes += r.AllocBytes
 	mu.FreeObjects += r.FreeObjects

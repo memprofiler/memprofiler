@@ -3,12 +3,13 @@ package tsdb
 import (
 	"time"
 
+	"github.com/memprofiler/memprofiler/server/storage/data/tsdb/prometheus"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/prometheus/tsdb"
 	"github.com/prometheus/tsdb/labels"
 
 	"github.com/memprofiler/memprofiler/schema"
-	localTSDB "github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus"
 )
 
 // MeasurementIterator gets measurement for each time in TSDB
@@ -93,9 +94,9 @@ func (i *measurementIterator) currentLocations() ([]*schema.Location, error) {
 			currentLocations = append(currentLocations, location)
 
 			// delete MemoryUsageIterator if no new values
-			if !i.memoryUsageIteratorMap[l].Next() {
+			if !v.Next() {
 				delete(i.memoryUsageIteratorMap, l)
-			} else if err := i.memoryUsageIteratorMap[l].Error(); err != nil {
+			} else if err := v.Error(); err != nil {
 				return nil, err
 			}
 		}
@@ -119,7 +120,7 @@ func (i *measurementIterator) getLocation(callStack string, memUsage *schema.Mem
 }
 
 // NewMeasurementIterator iterator over measurements in session
-func NewMeasurementIterator(tsdb localTSDB.TSDB, codec codec, sessionLabel labels.Label) (MeasurementIterator, error) {
+func NewMeasurementIterator(tsdb prometheus.TSDB, codec codec, sessionLabel labels.Label) (MeasurementIterator, error) {
 	querier, err := tsdb.Querier(0, time.Now().Unix())
 	if err != nil {
 		return nil, err

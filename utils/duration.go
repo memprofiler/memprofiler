@@ -7,16 +7,18 @@ import (
 	"time"
 )
 
-// Duration that can be JSON and YAML marshalled
+// Duration that can be JSON and YAML marshaled
 // (JSON marshaller copied from https://stackoverflow.com/a/48051946/2361497)
 type Duration struct {
 	time.Duration
 }
 
+// MarshalYAML ...
 func (d *Duration) MarshalYAML() (interface{}, error) {
 	return d.Duration.String(), nil
 }
 
+// UnmarshalYAML ...
 func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	var s string
 	if err := unmarshal(&s); err != nil {
@@ -28,10 +30,12 @@ func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
 	return err
 }
 
+// MarshalJSON ...
 func (d Duration) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.String())
 }
 
+// UnmarshalJSON ...
 func (d *Duration) UnmarshalJSON(b []byte) error {
 	var v interface{}
 	if err := json.Unmarshal(b, &v); err != nil {

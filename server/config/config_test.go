@@ -7,7 +7,7 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	cfg, err := FromYAMLFile("./example.yml")
+	cfg, err := FromYAMLFile("./example_filesystem.yml")
 	assert.NoError(t, err)
 	assert.NotNil(t, cfg)
 }

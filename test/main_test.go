@@ -16,7 +16,7 @@ import (
 func TestIntegration(t *testing.T) {
 	var (
 		projectPath             = filepath.Join(build.Default.GOPATH, "src/github.com/memprofiler/memprofiler")
-		serverCfgPathFilesystem = filepath.Join(projectPath, "server/config/example.yml")
+		serverCfgPathFilesystem = filepath.Join(projectPath, "server/config/example_filesystem.yml")
 		serverCfgPathTSDB       = filepath.Join(projectPath, "server/config/example_tsdb.yml")
 	)
 	t.Run("filesystemStorage", testTemplate(projectPath, serverCfgPathFilesystem))
@@ -27,18 +27,21 @@ func testTemplate(projectPath, serverConfigPath string) func(t *testing.T) {
 	return func(t *testing.T) {
 		testStartTime := time.Now()
 
+		// wait to make 1 second pass, because session start times are aligned by seconds
+		time.Sleep(1 * time.Second)
+
 		// run environment
 		e, err := newEnv(projectPath, serverConfigPath)
-		if err != nil {
-			t.Fatal(err)
+		if !assert.NoError(t, err) {
+			t.FailNow()
 		}
 		defer e.Stop()
 
 		// wait until client will send couple of reports to server
 		time.Sleep(2 * e.reporterCfg.Scenario.Steps[0].Wait.Duration)
 
-		expectedServiceType := e.reporterCfg.Client.ServiceDescription.ServiceType
-		expectedServiceInstance := e.reporterCfg.Client.ServiceDescription.ServiceInstance
+		expectedServiceName := e.reporterCfg.Client.InstanceDescription.ServiceName
+		expectedInstanceName := e.reporterCfg.Client.InstanceDescription.InstanceName
 
 		// 1. ask for list of service types
 		getServicesRequest := &schema.GetServicesRequest{}
@@ -47,24 +50,25 @@ func testTemplate(projectPath, serverConfigPath string) func(t *testing.T) {
 			t.FailNow()
 		}
 		// there should be the only service right now
-		assert.Len(t, getServicesResponse.ServiceTypes, 1)
-		assert.Equal(t, expectedServiceType, getServicesResponse.ServiceTypes[0])
+		assert.Len(t, getServicesResponse.Services, 1)
+		assert.Equal(t, expectedServiceName, getServicesResponse.Services[0])
 
 		// 2. ask for list of service instances
-		getInstancesRequest := &schema.GetInstancesRequest{ServiceType: expectedServiceType}
+		getInstancesRequest := &schema.GetInstancesRequest{Service: expectedServiceName}
 		getInstancesResponse, err := e.client.GetInstances(context.Background(), getInstancesRequest)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
 		// there should be the only instance right now
-		assert.Len(t, getInstancesResponse.ServiceInstances, 1)
-		assert.Equal(t, expectedServiceInstance, getServicesResponse.ServiceTypes[0])
+		assert.Len(t, getInstancesResponse.Instances, 1)
+		assert.Equal(t, expectedServiceName, getInstancesResponse.Instances[0].ServiceName)
+		assert.Equal(t, expectedInstanceName, getInstancesResponse.Instances[0].InstanceName)
 
 		// 3. ask for list of sessions
 		getSessionsRequest := &schema.GetSessionsRequest{
-			ServiceDescription: &schema.ServiceDescription{
-				ServiceType:     expectedServiceType,
-				ServiceInstance: expectedServiceInstance,
+			Instance: &schema.InstanceDescription{
+				ServiceName:  expectedServiceName,
+				InstanceName: expectedInstanceName,
 			},
 		}
 		getSessionResponse, err := e.client.GetSessions(context.Background(), getSessionsRequest)
@@ -74,28 +78,34 @@ func testTemplate(projectPath, serverConfigPath string) func(t *testing.T) {
 		// there should be the only session right now
 		assert.Len(t, getSessionResponse.Sessions, 1)
 		session := getSessionResponse.Sessions[0]
-		assert.Equal(t, expectedServiceType, session.Description.ServiceType)
-		assert.Equal(t, expectedServiceInstance, session.Description.ServiceInstance)
-		assert.Equal(t, uint32(0), session.Description.SessionId)
+		assert.Equal(t, expectedServiceName, session.Description.InstanceDescription.ServiceName)
+		assert.Equal(t, expectedInstanceName, session.Description.InstanceDescription.InstanceName)
+		assert.Equal(t, int64(1), session.Description.Id)
 
 		// session start time must be greater than test start time
 		sessionStartTime, err := ptypes.Timestamp(session.Metadata.StartedAt)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
-		assert.True(t, testStartTime.Before(sessionStartTime))
+		assert.True(
+			t,
+			testStartTime.Before(sessionStartTime),
+			"testStartTime=%v sessionStartTime=%v",
+			testStartTime, sessionStartTime,
+		)
 
 		// session is still operational, so the finish time is nil
 		assert.Nil(t, session.Metadata.FinishedAt)
 
 		// 4. subscribe for session updates
 		subscriptionRequest := &schema.SubscribeForSessionRequest{
-			SessionDescription: session.Description,
+			Session: session.Description,
 		}
 		subscription, err := e.client.SubscribeForSession(context.Background(), subscriptionRequest)
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
+		// try to get a message from subscription and validate it
 		metrics, err := subscription.Recv()
 		if !assert.NoError(t, err) {
 			t.FailNow()

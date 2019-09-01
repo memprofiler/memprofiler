@@ -8,7 +8,7 @@ import (
 
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/config"
-	"github.com/memprofiler/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/server/storage/data"
 )
 
 var _ Computer = (*defaultComputer)(nil)
@@ -23,7 +23,7 @@ type defaultComputer struct {
 	dispatcher dispatcher
 
 	// storage provides data that is not in cache yet
-	storage storage.Storage
+	storage data.Storage
 
 	mutex  sync.RWMutex
 	cfg    *config.MetricsConfig
@@ -143,7 +143,7 @@ func (r *defaultComputer) Quit() {
 }
 
 // NewComputer instantiates new runner
-func NewComputer(logger *zerolog.Logger, storage storage.Storage, cfg *config.MetricsConfig) Computer {
+func NewComputer(logger *zerolog.Logger, storage data.Storage, cfg *config.MetricsConfig) Computer {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &defaultComputer{
 		logger:     logger,

@@ -27,6 +27,7 @@ func (l *launcher) Stop() {
 	l.profiler.Stop()
 }
 
+// New runs new service that is used only for integration tests
 func New(logger *zerolog.Logger, cfg *config.Config, errChan chan<- error) (common.Service, error) {
 
 	// create memprofiler profiler

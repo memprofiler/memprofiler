@@ -26,30 +26,30 @@ message GetServicesRequest {
 
 // GetServicesResponse is a response body for GetServices method
 message GetServicesResponse {
-    // service_types - services that ever pushed data to this memprofiler
-    repeated string service_types = 1;
+    // services - names of the services that had ever pushed data to this memprofiler
+    repeated string services = 1;
 }
 
 // -------- GetInstances --------
 
 // GetInstancesRequest is a request body for GetInstances method
 message GetInstancesRequest {
-    // service_type - identifier for a group of similar services
-    string service_type = 1;
+    // service - identifier for a group of similar services
+    string service = 1;
 }
 
 // GetInstancesResponse is a response body for GetInstances method
 message GetInstancesResponse {
-    // service_instances - list of a particular kind of services instances
-    repeated ServiceDescription service_instances = 1;
+    // instances - list of a particular kind of services instances
+    repeated InstanceDescription instances = 1;
 }
 
 // -------- GetSessions --------
 
 // GetSessionsRequest is a request body for GetSessions method
 message GetSessionsRequest {
-    // service_description - service instance information
-    ServiceDescription service_description = 1;
+    // instance - service instance information
+    InstanceDescription instance = 1;
 }
 
 // GetSessionsResponse is a response body for GetSessions method
@@ -62,7 +62,7 @@ message GetSessionsResponse {
 
 // SubscribeForSessionRequest is a request body for SubscribeForSession request
 message SubscribeForSessionRequest {
-    SessionDescription session_description = 1;
+    SessionDescription session = 1;
 }
 
 // MemoryUtilizationRate is a collection of rate values for memory consumption indicators.

@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/schema"
-	"github.com/memprofiler/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/server/storage/data"
 )
 
 // sessionData contains the most recent data of the particular session;
@@ -28,7 +28,7 @@ type sessionData struct {
 
 func (sd *sessionData) populate(
 	ctx context.Context,
-	loadChan <-chan *storage.LoadResult,
+	loadChan <-chan *data.LoadResult,
 ) error {
 
 	sd.mutex.Lock()
