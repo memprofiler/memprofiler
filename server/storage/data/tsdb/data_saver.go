@@ -1,31 +1,36 @@
 package tsdb
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
-	"github.com/golang/protobuf/ptypes"
-	"github.com/prometheus/tsdb/labels"
+	"github.com/pkg/errors"
 
 	"github.com/memprofiler/memprofiler/schema"
-	"github.com/memprofiler/memprofiler/server/storage"
-	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus"
+	"github.com/memprofiler/memprofiler/server/storage/data"
+	"github.com/memprofiler/memprofiler/server/storage/data/tsdb/prometheus"
+	"github.com/memprofiler/memprofiler/server/storage/metadata"
+
+	"github.com/golang/protobuf/ptypes"
+	"github.com/prometheus/tsdb/labels"
 )
 
-var _ storage.DataSaver = (*defaultDataSaver)(nil)
+var _ data.Saver = (*defaultDataSaver)(nil)
 
 // defaultDataSaver puts records to a prometheus
 type defaultDataSaver struct {
-	storage     prometheus.TSDB
-	codec       codec
-	sessionDesc *schema.SessionDescription
-	wg          *sync.WaitGroup
+	tsdbStorage     prometheus.TSDB
+	metadataStorage metadata.Storage
+	codec           codec
+	sessionDesc     *schema.SessionDescription
+	wg              *sync.WaitGroup
 }
 
 // Save store Measurement to TSDB
 func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 	var (
-		sessionLabel = labels.Label{Name: sessionLabelName, Value: fmt.Sprintf("%v", s.SessionID())}
+		sessionLabel = labels.Label{Name: sessionLabelName, Value: fmt.Sprintf("%v", s.SessionDescription())}
 		location     = mm.GetLocations()
 	)
 
@@ -35,7 +40,7 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 	}
 
 	for _, l := range location {
-		appender := s.storage.Appender()
+		appender := s.tsdbStorage.Appender()
 		mu := l.GetMemoryUsage()
 		callStack, err := s.codec.encode(l.GetCallstack())
 		if err != nil {
@@ -66,25 +71,32 @@ func (s *defaultDataSaver) Save(mm *schema.Measurement) error {
 // Close close data saver
 func (s *defaultDataSaver) Close() error {
 	defer s.wg.Done()
-	return s.storage.Close()
+	// FIXME: need some kind of atomic stop
+	if err := s.metadataStorage.StopSession(context.Background(), s.sessionDesc); err != nil {
+		return errors.Wrap(err, "stop session")
+	}
+	if err := s.tsdbStorage.Close(); err != nil {
+		return errors.Wrap(err, "close TSDB storage")
+	}
+	return nil
 }
 
-// SessionID gets session identifier
-func (s *defaultDataSaver) SessionID() storage.SessionID {
-	return s.sessionDesc.GetSessionId()
-}
+// Session gets session identifier
+func (s *defaultDataSaver) SessionDescription() *schema.SessionDescription { return s.sessionDesc }
 
 func newDataSaver(
 	sessionDesc *schema.SessionDescription,
 	codec codec,
 	wg *sync.WaitGroup,
-	stor prometheus.TSDB,
-) (storage.DataSaver, error) {
+	tsdbStorage prometheus.TSDB,
+	metadataStorage metadata.Storage,
+) (data.Saver, error) {
 	saver := &defaultDataSaver{
-		storage:     stor,
-		codec:       codec,
-		sessionDesc: sessionDesc,
-		wg:          wg,
+		tsdbStorage:     tsdbStorage,
+		codec:           codec,
+		sessionDesc:     sessionDesc,
+		metadataStorage: metadataStorage,
+		wg:              wg,
 	}
 
 	return saver, nil

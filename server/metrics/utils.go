@@ -9,8 +9,8 @@ import (
 func shortSessionIdentifier(sessionDesc *schema.SessionDescription) string {
 	return fmt.Sprintf(
 		"%s::%s::%d",
-		sessionDesc.GetServiceType(),
-		sessionDesc.GetServiceInstance(),
-		sessionDesc.GetSessionId(),
+		sessionDesc.InstanceDescription.ServiceName,
+		sessionDesc.InstanceDescription.InstanceName,
+		sessionDesc.Id,
 	)
 }

@@ -3,15 +3,16 @@ package test
 import (
 	"context"
 	"fmt"
-	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 
 	"github.com/memprofiler/memprofiler/schema"
+	"github.com/memprofiler/memprofiler/utils"
 
 	"github.com/memprofiler/memprofiler/server/common"
 	"github.com/memprofiler/memprofiler/server/config"
@@ -61,7 +62,7 @@ func newEnv(projectPath, serverConfigPath string) (*env, error) {
 		err     error
 		errChan = make(chan error, 16) // FIXME: hopefully large enough, but try to determine it better
 		l       = &env{
-			logger: newLogger(),
+			logger: utils.NewLogger(&config.LoggingConfig{Level: zerolog.DebugLevel}),
 			ctx:    ctx,
 			cancel: cancel,
 			wg:     sync.WaitGroup{},
@@ -110,22 +111,29 @@ func newEnv(projectPath, serverConfigPath string) (*env, error) {
 	return l, nil
 }
 
-func runServer(logger *zerolog.Logger, cfgPath string, errChan chan<- error,
-) (common.Service, *serverConfig.Config, error) {
+func runServer(
+	logger *zerolog.Logger,
+	cfgPath string,
+	errChan chan<- error,
+) (
+	common.Service,
+	*serverConfig.Config,
+	error,
+) {
 
 	// parse base config
 	cfg, err := serverConfig.FromYAMLFile(cfgPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Wrap(err, fmt.Sprintf("open file %v", cfgPath))
 	}
 
 	// override data dir
 	dataDir := fmt.Sprintf("/tmp/memprofiler_%v", time.Now().Format("20060102150405"))
-	switch cfg.StorageType {
-	case config.StorageTypeFilesystem:
-		cfg.Filesystem.DataDir = dataDir
-	case config.StorageTypeTSDB:
-		cfg.TSDB.DataDir = dataDir
+	switch cfg.DataStorage.Type() {
+	case config.FilesystemDataStorage:
+		cfg.DataStorage.Filesystem.DataDir = dataDir
+	case config.TSDBDataStorage:
+		cfg.DataStorage.TSDB.DataDir = dataDir
 	}
 
 	subLogger := logger.With().Fields(map[string]interface{}{
@@ -157,10 +165,4 @@ func runReporter(logger *zerolog.Logger, cfgPath string, errChan chan<- error,
 	}
 
 	return l, cfg, nil
-}
-
-func newLogger() *zerolog.Logger {
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	return &logger
 }

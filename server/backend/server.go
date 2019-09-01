@@ -52,9 +52,10 @@ func (s *server) SaveReport(stream schema.MemprofilerBackend_SaveReportServer) e
 		if err != nil {
 			return err
 		}
+		// FIXME: validate request, all required fields must exist
 		switch request.Payload.(type) {
-		case *schema.SaveReportRequest_ServiceDescription:
-			err = protocol.addDescription(request.GetServiceDescription())
+		case *schema.SaveReportRequest_InstanceDescription:
+			err = protocol.addDescription(request.GetInstanceDescription())
 		case *schema.SaveReportRequest_Measurement:
 			err = protocol.addMeasurement(request.GetMeasurement())
 		}

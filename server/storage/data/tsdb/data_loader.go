@@ -9,9 +9,8 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/schema"
-	"github.com/memprofiler/memprofiler/server/storage"
-	"github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus"
-	localTSDB "github.com/memprofiler/memprofiler/server/storage/tsdb/prometheus"
+	"github.com/memprofiler/memprofiler/server/storage/data"
+	"github.com/memprofiler/memprofiler/server/storage/data/tsdb/prometheus"
 )
 
 const (
@@ -19,7 +18,7 @@ const (
 )
 
 type defaultDataLoader struct {
-	storage localTSDB.TSDB
+	storage prometheus.TSDB
 	codec   codec
 	sd      *schema.SessionDescription
 	logger  *zerolog.Logger
@@ -27,8 +26,11 @@ type defaultDataLoader struct {
 }
 
 // Load read data from TSDB
-func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResult, error) {
-	var sessionLabel = labels.Label{Name: sessionLabelName, Value: fmt.Sprintf("%v", l.sd.GetSessionId())}
+func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *data.LoadResult, error) {
+	var sessionLabel = labels.Label{
+		Name:  sessionLabelName,
+		Value: fmt.Sprintf("%d", l.sd.GetId()),
+	}
 
 	li, err := NewMeasurementIterator(l.storage, l.codec, sessionLabel)
 	if err != nil {
@@ -36,7 +38,7 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 	}
 
 	// prepare bufferized channel for results
-	results := make(chan *storage.LoadResult, loadChanCapacity)
+	results := make(chan *data.LoadResult, loadChanCapacity)
 	go func() {
 		defer close(results)
 		for li.Next() {
@@ -45,7 +47,7 @@ func (l *defaultDataLoader) Load(ctx context.Context) (<-chan *storage.LoadResul
 				err         = li.Error()
 			)
 
-			m := &storage.LoadResult{Measurement: measurement, Err: err}
+			m := &data.LoadResult{Measurement: measurement, Err: err}
 
 			select {
 			case results <- m:
@@ -69,12 +71,12 @@ func newDataLoader(
 	logger *zerolog.Logger,
 	wg *sync.WaitGroup,
 	stor prometheus.TSDB,
-) (storage.DataLoader, error) {
+) (data.Loader, error) {
 	// open file to load records
 	contextLogger := logger.With().Fields(map[string]interface{}{
-		"type":        sessionDesc.GetServiceType(),
-		"instance":    sessionDesc.GetServiceInstance(),
-		"sessionDesc": storage.SessionIDToString(sessionDesc.GetSessionId()),
+		"service":    sessionDesc.InstanceDescription.ServiceName,
+		"instance":   sessionDesc.InstanceDescription.InstanceName,
+		"session_id": sessionDesc.Id,
 	}).Logger()
 
 	loader := &defaultDataLoader{

@@ -2,9 +2,12 @@ package utils
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/grpclog"
+
+	"github.com/memprofiler/memprofiler/server/config"
 )
 
 var _ grpclog.LoggerV2 = (*zeroLogGRPCV2)(nil)
@@ -69,4 +72,11 @@ func (l2 *zeroLogGRPCV2) V(l int) bool {
 // ZeroLogToGRPCLogger wraps zerolog into GRPC logger
 func ZeroLogToGRPCLogger(src *zerolog.Logger) grpclog.LoggerV2 {
 	return &zeroLogGRPCV2{zeroLog: src}
+}
+
+func NewLogger(cfg *config.LoggingConfig) *zerolog.Logger {
+	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout, NoColor: false}).With().Timestamp().Logger()
+	zerolog.SetGlobalLevel(cfg.Level)
+
+	return &logger
 }

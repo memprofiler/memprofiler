@@ -1,4 +1,4 @@
-package storage
+package data
 
 import (
 	"context"
@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// DataLoader
+// Loader
 
-var _ DataLoader = (*DataLoaderMock)(nil)
+var _ Loader = (*DataLoaderMock)(nil)
 
 type DataLoaderMock struct {
 	mock.Mock

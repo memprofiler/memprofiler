@@ -8,6 +8,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/pkg/errors"
+
 	"github.com/memprofiler/memprofiler/server/common"
 
 	"github.com/golang/protobuf/ptypes"
@@ -150,6 +152,10 @@ func (p *defaultProfiler) Stop() {
 // NewProfiler launches new instance of memory profiler
 func NewProfiler(logger Logger, cfg *Config) (Profiler, error) {
 
+	if err := cfg.Verify(); err != nil {
+		return nil, errors.Wrap(err, "validate config")
+	}
+
 	// prepare GRPC client
 	clientConn, err := grpc.Dial(cfg.ServerEndpoint, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
@@ -212,12 +218,12 @@ func makeStream(clientConn *grpc.ClientConn, cfg *Config) (schema.MemprofilerBac
 
 	// send greeting message to server
 	msg := &schema.SaveReportRequest{
-		Payload: &schema.SaveReportRequest_ServiceDescription{
-			ServiceDescription: cfg.ServiceDescription,
+		Payload: &schema.SaveReportRequest_InstanceDescription{
+			InstanceDescription: cfg.InstanceDescription,
 		},
 	}
 	if err := stream.Send(msg); err != nil {
-		return nil, fmt.Errorf("failed to send greeting message")
+		return nil, errors.Wrap(err, "send greeting message")
 	}
 
 	return stream, nil

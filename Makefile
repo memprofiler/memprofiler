@@ -1,10 +1,10 @@
 deps:
-	go get -u ./...
+	GO111MODULE=on go get -u ./...
 	go mod tidy
 
 PROTOBUF_VERSION=3.7.1
 PROTOBUF_DIR=/tmp/protoc-${PROTOBUF_VERSION}
-GOLANGCI_LINT_VERSION=1.16.0
+GOLANGCI_LINT_VERSION=1.17.1
 env:
 	# download protobuf release
 	wget -P /tmp https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip
@@ -32,6 +32,8 @@ env:
 
 	# install tools
 	go get -u -v golang.org/x/tools/cmd/stringer
+	protoc-go-inject-tag -input=./schema/common.pb.go
+	go get -u -v github.com/favadi/protoc-go-inject-tag
 	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b /usr/local/bin v${GOLANGCI_LINT_VERSION}
 
 generate:
@@ -39,7 +41,7 @@ generate:
 	go generate ./...
 
 build:
-	go build github.com/memprofiler/memprofiler
+	GO111MODULE=on go build github.com/memprofiler/memprofiler
 
 lint:
 	golangci-lint run --enable-all ./...

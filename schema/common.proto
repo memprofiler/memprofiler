@@ -4,32 +4,32 @@ package schema;
 
 import "google/protobuf/timestamp.proto";
 
-// ServiceDescription describes a service whose memory stats is being tracked
-message ServiceDescription {
+// InstanceDescription describes a service instance whose memory stats is being tracked
+message InstanceDescription {
     // type - general service description (kind, role and so on)
-    string service_type = 1;
-    // instance - unique id of a particular service instance (it may be IP or node ID, and so on)
-    string service_instance = 2;
+    // @inject_tag: yaml:"service_name"
+    string service_name = 1;
+    // name - unique id of a particular service instance (it may be IP or node ID, and so on)
+    // @inject_tag: yaml:"instance_name"
+    string instance_name = 2;
 }
 
 // SessionDescription identifies a single memory tracking session for
 // a particular service instance. Typically every service restart
 // terminates current session (if there is any) and starts new one.
 message SessionDescription {
-    // type - general service description (kind, role and so on)
-    string service_type = 1;
-    // instance - description of a particular service instance
-    string service_instance = 2;
-    // session_id - unique session identifier
-    uint32 session_id = 3;
+    // instance - service instance identifier
+    InstanceDescription instance_description = 1;
+    // id - unique session identifier
+    int64 id = 2;
 }
 
 // SessionMetadata contains server-side session metadata
 message SessionMetadata {
     // started_at - time when session has started (UTC)
-    google.protobuf.Timestamp started_at = 4;
+    google.protobuf.Timestamp started_at = 1;
     // finished_at - time when session has stopped (UTC), may be empty if session is still alive
-    google.protobuf.Timestamp finished_at = 5;
+    google.protobuf.Timestamp finished_at = 2;
 }
 
 // Session combines all available information about a memory tracking session

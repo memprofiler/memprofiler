@@ -16,8 +16,8 @@ service MemprofilerBackend {
 // SaveReportRequest - request for SaveReport method
 message SaveReportRequest {
     oneof payload {
-        // service_descriptions - metadata about reporter
-        ServiceDescription service_description = 1;
+        // instance_description - metadata about reporter
+        InstanceDescription instance_description = 1;
         // measurement - a memory utilization report itself
         Measurement measurement = 2;
     }

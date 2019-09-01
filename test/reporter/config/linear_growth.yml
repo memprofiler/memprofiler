@@ -1,8 +1,8 @@
 client:
   server_endpoint: "localhost:46219"
-  service_description:
-    service_type: reporter
-    service_instance: test
+  instance_description:
+    service_name: reporter
+    instance_name: test
   periodicity: 1s
   verbose: false
 
