@@ -13,28 +13,28 @@ service MemprofilerFrontend {
     // GetServices returns the list of registered services
     rpc GetServices (GetServicesRequest) returns (GetServicesResponse) {
         option (google.api.http) = {
-            get: "/services"
+            get: "/v1/services"
         };
     };
 
     // GetInstances returns the list of service instances
     rpc GetInstances (GetInstancesRequest) returns (GetInstancesResponse) {
         option (google.api.http) = {
-            get: "/instances"
+            get: "/v1/instances"
         };
     };
 
     // GetSessions returns the list of available profiling sessions for a service instance
     rpc GetSessions (GetSessionsRequest) returns (GetSessionsResponse) {
         option (google.api.http) = {
-            get: "/sessions"
+            get: "/v1/sessions"
         };
     };
 
     // SubscribeForSession returns the stream of session updates with fresh trend values, if it's still alive
     rpc SubscribeForSession(SubscribeForSessionRequest) returns (stream SessionMetrics) {
         option (google.api.http) = {
-            get: "/subscribe"
+            get: "/v1/subscribe"
         };
     };
 }

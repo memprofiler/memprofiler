@@ -1,0 +1,395 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "frontend.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/instances": {
+      "get": {
+        "summary": "GetInstances returns the list of service instances",
+        "operationId": "GetInstances",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/schemaGetInstancesResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "service_type",
+            "description": "service_type - identifier for a group of similar services.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MemprofilerFrontend"
+        ]
+      }
+    },
+    "/v1/services": {
+      "get": {
+        "summary": "GetServices returns the list of registered services",
+        "operationId": "GetServices",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/schemaGetServicesResponse"
+            }
+          }
+        },
+        "tags": [
+          "MemprofilerFrontend"
+        ]
+      }
+    },
+    "/v1/sessions": {
+      "get": {
+        "summary": "GetSessions returns the list of available profiling sessions for a service instance",
+        "operationId": "GetSessions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/schemaGetSessionsResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "service_description.service_type",
+            "description": "type - general service description (kind, role and so on).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "service_description.service_instance",
+            "description": "instance - unique id of a particular service instance (it may be IP or node ID, and so on).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "MemprofilerFrontend"
+        ]
+      }
+    },
+    "/v1/subscribe": {
+      "get": {
+        "summary": "SubscribeForSession returns the stream of session updates with fresh trend values, if it's still alive",
+        "operationId": "SubscribeForSession",
+        "responses": {
+          "200": {
+            "description": "A successful response.(streaming responses)",
+            "schema": {
+              "$ref": "#/x-stream-definitions/schemaSessionMetrics"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "session_description.service_type",
+            "description": "type - general service description (kind, role and so on).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "session_description.service_instance",
+            "description": "instance - description of a particular service instance.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "session_description.session_id",
+            "description": "session_id - unique session identifier.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "MemprofilerFrontend"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "MemoryUtilizationRateValues": {
+      "type": "object",
+      "properties": {
+        "alloc_objects": {
+          "type": "number",
+          "format": "double"
+        },
+        "alloc_bytes": {
+          "type": "number",
+          "format": "double"
+        },
+        "free_objects": {
+          "type": "number",
+          "format": "double"
+        },
+        "free_bytes": {
+          "type": "number",
+          "format": "double"
+        },
+        "in_use_objects": {
+          "type": "number",
+          "format": "double"
+        },
+        "in_use_bytes": {
+          "type": "number",
+          "format": "double"
+        }
+      },
+      "title": "Values is a set of rate values"
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "format": "byte"
+        }
+      }
+    },
+    "runtimeStreamError": {
+      "type": "object",
+      "properties": {
+        "grpc_code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "http_code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "http_status": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "schemaCallstack": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "title": "id represents unique identifier for a particular stack"
+        },
+        "frames": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/schemaStackFrame"
+          },
+          "title": "frames describes the place code where heap allocation occured"
+        }
+      },
+      "title": "Callstack describes call stack of memory allocation event"
+    },
+    "schemaGetInstancesResponse": {
+      "type": "object",
+      "properties": {
+        "service_instances": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/schemaServiceDescription"
+          },
+          "title": "service_instances - list of a particular kind of services instances"
+        }
+      },
+      "title": "GetInstancesResponse is a response body for GetInstances method"
+    },
+    "schemaGetServicesResponse": {
+      "type": "object",
+      "properties": {
+        "service_types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "title": "service_types - services that had ever pushed data to this memprofiler"
+        }
+      },
+      "title": "GetServicesResponse is a response body for GetServices method"
+    },
+    "schemaGetSessionsResponse": {
+      "type": "object",
+      "properties": {
+        "sessions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/schemaSession"
+          },
+          "title": "sessions is a list of  information about available sessions"
+        }
+      },
+      "title": "GetSessionsResponse is a response body for GetSessions method"
+    },
+    "schemaLocationMetrics": {
+      "type": "object",
+      "properties": {
+        "rates": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/schemaMemoryUtilizationRate"
+          },
+          "title": "rates represents memory consumption rates estimated\nfor some averaging window defined by server"
+        },
+        "callstack": {
+          "$ref": "#/definitions/schemaCallstack",
+          "title": "callstack describes location in code where the allocation happened"
+        }
+      },
+      "title": "LocationMetrics is a set of memory allocation statistics\nthat happened on a particular line of source code"
+    },
+    "schemaMemoryUtilizationRate": {
+      "type": "object",
+      "properties": {
+        "span": {
+          "type": "string",
+          "title": "span is a time span that is used to compute rates"
+        },
+        "values": {
+          "$ref": "#/definitions/MemoryUtilizationRateValues",
+          "title": "values contains actual rates for a specified time span"
+        }
+      },
+      "title": "MemoryUtilizationRate is a collection of rate values for memory consumption indicators.\nFormally, the rate (or velocity) is the first time derivative of any memory consumption indicator.\nFor Bytes rate units are bytes per second, for Objects rate units are units per second"
+    },
+    "schemaServiceDescription": {
+      "type": "object",
+      "properties": {
+        "service_type": {
+          "type": "string",
+          "title": "type - general service description (kind, role and so on)"
+        },
+        "service_instance": {
+          "type": "string",
+          "title": "instance - unique id of a particular service instance (it may be IP or node ID, and so on)"
+        }
+      },
+      "title": "ServiceDescription describes a service whose memory stats is being tracked"
+    },
+    "schemaSession": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "$ref": "#/definitions/schemaSessionDescription"
+        },
+        "metadata": {
+          "$ref": "#/definitions/schemaSessionMetadata"
+        }
+      },
+      "title": "Session combines all available information about a memory tracking session"
+    },
+    "schemaSessionDescription": {
+      "type": "object",
+      "properties": {
+        "service_type": {
+          "type": "string",
+          "title": "type - general service description (kind, role and so on)"
+        },
+        "service_instance": {
+          "type": "string",
+          "title": "instance - description of a particular service instance"
+        },
+        "session_id": {
+          "type": "integer",
+          "format": "int64",
+          "title": "session_id - unique session identifier"
+        }
+      },
+      "description": "SessionDescription identifies a single memory tracking session for\na particular service instance. Typically every service restart\nterminates current session (if there is any) and starts new one."
+    },
+    "schemaSessionMetadata": {
+      "type": "object",
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "started_at - time when session has started (UTC)"
+        },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time",
+          "title": "finished_at - time when session has stopped (UTC), may be empty if session is still alive"
+        }
+      },
+      "title": "SessionMetadata contains server-side session metadata"
+    },
+    "schemaSessionMetrics": {
+      "type": "object",
+      "properties": {
+        "locations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/schemaLocationMetrics"
+          }
+        }
+      },
+      "title": "SessionMetrics contains list of heap allocation metrics per every location"
+    },
+    "schemaStackFrame": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "file": {
+          "type": "string"
+        },
+        "line": {
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "title": "StackFrame provides information about a single stack frame"
+    }
+  },
+  "x-stream-definitions": {
+    "schemaSessionMetrics": {
+      "type": "object",
+      "properties": {
+        "result": {
+          "$ref": "#/definitions/schemaSessionMetrics"
+        },
+        "error": {
+          "$ref": "#/definitions/runtimeStreamError"
+        }
+      },
+      "title": "Stream result of schemaSessionMetrics"
+    }
+  }
+}

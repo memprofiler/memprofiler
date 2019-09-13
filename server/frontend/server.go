@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"sort"
+	"time"
 
 	"github.com/rs/zerolog"
 
@@ -93,7 +94,18 @@ func (s *server) SubscribeForSession(
 	}
 }
 
-func (s *server) Start() { s.errChan <- s.grpcServer.Serve(s.listener) }
+func (s *server) Start() {
+	time.Sleep(time.Second)
+	// 3. Reverse proxy
+	go func() {
+		s.logger.Info().Msg("------------------------Start-------------------------------)")
+		err := StartReverseProxy("localhost:46218", "localhost:8081")
+		s.logger.Err(err)
+		s.logger.Info().Msg("-------------------------------------------------------)")
+	}()
+	time.Sleep(time.Second)
+	s.errChan <- s.grpcServer.Serve(s.listener)
+}
 
 func (s *server) Stop() { s.grpcServer.GracefulStop() }
 

@@ -67,8 +67,9 @@ func (ss services) stop(logger *zerolog.Logger) {
 }
 
 const (
-	labelBackend  = "backend"
-	labelFrontend = "frontend"
+	labelBackend      = "backend"
+	labelFrontend     = "frontend"
+	labelReverseProxy = "reverseProxy"
 )
 
 func runServices(

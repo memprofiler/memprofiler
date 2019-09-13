@@ -45,6 +45,12 @@ generate:
 	  -I ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
 	  --grpc-gateway_out=logtostderr=true:schema \
 	  schema/*.proto
+	protoc -I schema \
+      -I /usr/local/include -I. \
+      -I ${GOPATH}/src \
+      -I ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway/third_party/googleapis \
+      --swagger_out=logtostderr=true:www \
+      schema/frontend.proto
 	go generate ./...
 
 build:
@@ -63,7 +69,7 @@ test:
 	go tool cover -func=coverage.txt
 
 integration_test:
-	go test -c ./test -o memprofiler-test && ./memprofiler-test -test.count=1
+	go test -c ./test -o memprofiler-test && ./memprofiler-test -test.count=1 -test.v
 
 run:
 	./memprofiler -c ./server/config/example.yaml

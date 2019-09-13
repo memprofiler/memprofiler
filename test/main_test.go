@@ -3,6 +3,9 @@ package test
 import (
 	"context"
 	"go/build"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"path/filepath"
 	"testing"
 	"time"
@@ -17,10 +20,10 @@ func TestIntegration(t *testing.T) {
 	var (
 		projectPath             = filepath.Join(build.Default.GOPATH, "src/github.com/memprofiler/memprofiler")
 		serverCfgPathFilesystem = filepath.Join(projectPath, "server/config/example.yml")
-		serverCfgPathTSDB       = filepath.Join(projectPath, "server/config/example_tsdb.yml")
+		//serverCfgPathTSDB       = filepath.Join(projectPath, "server/config/example_tsdb.yml")
 	)
 	t.Run("filesystemStorage", testTemplate(projectPath, serverCfgPathFilesystem))
-	t.Run("tsdbStorage", testTemplate(projectPath, serverCfgPathTSDB))
+	//t.Run("tsdbStorage", testTemplate(projectPath, serverCfgPathTSDB))
 }
 
 func testTemplate(projectPath, serverConfigPath string) func(t *testing.T) {
@@ -46,6 +49,19 @@ func testTemplate(projectPath, serverConfigPath string) func(t *testing.T) {
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
+
+		log.Println("----------------------------------------------")
+		resp, err := http.Get("http://localhost:8081/v1/services")
+		if err != nil {
+			log.Println(err)
+			log.Println("----------------------Err------------------------")
+			return
+		}
+		defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
+		log.Println(string(body))
+		log.Println("----------------------------------------------")
+
 		// there should be the only service right now
 		assert.Len(t, getServicesResponse.ServiceTypes, 1)
 		assert.Equal(t, expectedServiceType, getServicesResponse.ServiceTypes[0])
@@ -100,6 +116,8 @@ func testTemplate(projectPath, serverConfigPath string) func(t *testing.T) {
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
+
+		time.Sleep(60 * time.Second)
 		assert.NotNil(t, metrics)
 		err = subscription.CloseSend()
 		if !assert.NoError(t, err) {
