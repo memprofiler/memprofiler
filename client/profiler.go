@@ -8,6 +8,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/pkg/errors"
+
 	"github.com/memprofiler/memprofiler/server/common"
 
 	"github.com/golang/protobuf/ptypes"
@@ -94,9 +96,9 @@ func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 	)
 
 	// iterate over profiler records, prepare structures to be sent to the server
-	for _, record := range records {
+	for i := range records {
 		cs := &schema.Callstack{}
-		utils.FillCallstack(cs, record.Stack(), false)
+		utils.FillCallstack(cs, records[i].Stack(), false)
 		cs.Id, err = utils.HashCallstack(cs)
 		if err != nil {
 			return nil, err
@@ -108,7 +110,7 @@ func (p *defaultProfiler) measure() (*schema.Measurement, error) {
 			stacks[cs.Id] = location
 		}
 
-		utils.UpdateMemoryUsage(location.MemoryUsage, record)
+		utils.UpdateMemoryUsage(location.MemoryUsage, &records[i])
 	}
 
 	mm := &schema.Measurement{
@@ -149,6 +151,10 @@ func (p *defaultProfiler) Stop() {
 
 // NewProfiler launches new instance of memory profiler
 func NewProfiler(logger Logger, cfg *Config) (Profiler, error) {
+
+	if err := cfg.Verify(); err != nil {
+		return nil, errors.Wrap(err, "validate config")
+	}
 
 	// prepare GRPC client
 	clientConn, err := grpc.Dial(cfg.ServerEndpoint, grpc.WithInsecure(), grpc.WithBlock())
@@ -212,12 +218,12 @@ func makeStream(clientConn *grpc.ClientConn, cfg *Config) (schema.MemprofilerBac
 
 	// send greeting message to server
 	msg := &schema.SaveReportRequest{
-		Payload: &schema.SaveReportRequest_ServiceDescription{
-			ServiceDescription: cfg.ServiceDescription,
+		Payload: &schema.SaveReportRequest_InstanceDescription{
+			InstanceDescription: cfg.InstanceDescription,
 		},
 	}
 	if err := stream.Send(msg); err != nil {
-		return nil, fmt.Errorf("failed to send greeting message")
+		return nil, errors.Wrap(err, "send greeting message")
 	}
 
 	return stream, nil

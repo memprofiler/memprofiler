@@ -14,7 +14,7 @@ type saveStateCommon struct {
 	p    saveProtocol
 }
 
-func (s *saveStateCommon) addDescription(*schema.ServiceDescription) error {
+func (s *saveStateCommon) addDescription(*schema.InstanceDescription) error {
 	return s.makeError()
 }
 

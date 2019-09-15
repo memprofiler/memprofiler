@@ -12,7 +12,7 @@ import (
 )
 
 // Playback is responsible for reproducing the desired memory
-// consumption behaviour (according to provided scenario)
+// consumption behavior (according to provided scenario)
 type Playback interface {
 	common.Service
 }
@@ -58,13 +58,13 @@ func (p *defaultPlayback) loop() {
 		// wait for a while
 		select {
 		case <-time.NewTimer(step.Wait.Duration).C:
-			break
 		case <-p.ctx.Done():
 			return
 		}
 	}
 }
 
+// New prepares subsystem that shows that consumes some memory according to schenario
 func New(logger *zerolog.Logger, scenario *config.Scenario, errChan chan<- error) Playback {
 	ctx, cancel := context.WithCancel(context.Background())
 

@@ -2,6 +2,7 @@ package config
 
 import (
 	"io/ioutil"
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 
@@ -25,7 +26,7 @@ type Scenario struct {
 	Steps []*Step `yaml:"steps"`
 }
 
-// Step is an minimal element describing memory consumption strategy behaviour
+// Step is an minimal element describing memory consumption strategy behavior
 type Step struct {
 	// How much memory should be added / dropped at once
 	MemoryDelta int `yaml:"memory_delta"`
@@ -35,7 +36,7 @@ type Step struct {
 
 // FromYAMLFile builds config structure from YAML formatted file
 func FromYAMLFile(path string) (*Config, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := ioutil.ReadFile(filepath.Clean(path))
 	if err != nil {
 		return nil, err
 	}

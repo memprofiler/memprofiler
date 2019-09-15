@@ -10,13 +10,13 @@ import (
 	"github.com/memprofiler/memprofiler/schema"
 	"github.com/memprofiler/memprofiler/server/locator"
 	"github.com/memprofiler/memprofiler/server/metrics"
-	"github.com/memprofiler/memprofiler/server/storage"
+	"github.com/memprofiler/memprofiler/server/storage/data"
 )
 
 // saveState implements state pattern for handling save requests
 type saveState interface {
-	addDescription(*schema.ServiceDescription) error
-	addMeasurement(*schema.Measurement) error
+	addDescription(description *schema.InstanceDescription) error
+	addMeasurement(mm *schema.Measurement) error
 	close() error
 }
 
@@ -26,12 +26,12 @@ type saveProtocol interface {
 	setState(saveState)
 	setSessionDescription(*schema.SessionDescription) error
 	getSessionDescription() *schema.SessionDescription
-	getStorage() storage.Storage
+	getStorage() data.Storage
 	getComputer() metrics.Computer
 	setLogger(logger *zerolog.Logger)
 	getLogger() *zerolog.Logger
-	setDataSaver(storage.DataSaver) error
-	getDataSaver() storage.DataSaver
+	setDataSaver(data.Saver) error
+	getDataSaver() data.Saver
 }
 
 type saveStateCode int8
@@ -46,8 +46,8 @@ const (
 type defaultSaveProtocol struct {
 	saveState
 	sessionDescription *schema.SessionDescription
-	dataSaver          storage.DataSaver
-	storage            storage.Storage
+	dataSaver          data.Saver
+	storage            data.Storage
 	computer           metrics.Computer
 	logger             *zerolog.Logger
 }
@@ -72,13 +72,13 @@ func (p *defaultSaveProtocol) getSessionDescription() *schema.SessionDescription
 
 func (p *defaultSaveProtocol) getComputer() metrics.Computer { return p.computer }
 
-func (p *defaultSaveProtocol) getStorage() storage.Storage { return p.storage }
+func (p *defaultSaveProtocol) getStorage() data.Storage { return p.storage }
 
 func (p *defaultSaveProtocol) getLogger() *zerolog.Logger { return p.logger }
 
 func (p *defaultSaveProtocol) setLogger(l *zerolog.Logger) { p.logger = l }
 
-func (p *defaultSaveProtocol) setDataSaver(dataSaver storage.DataSaver) error {
+func (p *defaultSaveProtocol) setDataSaver(dataSaver data.Saver) error {
 	if p.dataSaver != nil {
 		return fmt.Errorf("data saver is already set")
 	}
@@ -86,12 +86,12 @@ func (p *defaultSaveProtocol) setDataSaver(dataSaver storage.DataSaver) error {
 	return nil
 }
 
-func (p *defaultSaveProtocol) getDataSaver() storage.DataSaver { return p.dataSaver }
+func (p *defaultSaveProtocol) getDataSaver() data.Saver { return p.dataSaver }
 
 func newSaveProtocol(locator *locator.Locator) saveProtocol {
 
 	p := &defaultSaveProtocol{
-		storage:  locator.Storage,
+		storage:  locator.DataStorage,
 		computer: locator.Computer,
 		logger:   locator.Logger,
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/memprofiler/memprofiler/server/locator"
 )
 
+// Launcher is a top-level server structure responsible for Start and Stop
 type Launcher struct {
 	locator  *locator.Locator
 	logger   *zerolog.Logger
@@ -18,6 +19,7 @@ type Launcher struct {
 	errChan  chan<- error
 }
 
+// Start runs internal services
 func (l *Launcher) Start() {
 	var err error
 	l.services, err = runServices(l.locator, l.cfg, l.errChan)
@@ -28,11 +30,13 @@ func (l *Launcher) Start() {
 	l.services.start(l.logger)
 }
 
+// Stop stops internal services
 func (l *Launcher) Stop() {
 	l.locator.Quit()
 	l.services.stop(l.locator.Logger)
 }
 
+// New prepares new launcher
 func New(logger *zerolog.Logger, cfg *config.Config, errChan chan<- error) (*Launcher, error) {
 
 	// run subsystems

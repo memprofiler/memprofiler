@@ -66,7 +66,7 @@ func (l *goKitLogWrapper) Log(keyValues ...interface{}) error {
 	return nil
 }
 
-// New creates zeroLog logger with goKitLog.Logger interface
+// NewGoKitLogWrapper creates zeroLog logger with goKitLog.Logger interface
 func NewGoKitLogWrapper(logger *zerolog.Logger) (goKitLog.Logger, error) {
 	subLogger := logger.With().Fields(map[string]interface{}{
 		"side": "prometheus",

@@ -11,15 +11,16 @@ import (
 	"github.com/memprofiler/memprofiler/utils"
 )
 
+// Example of client integration
 func Example() {
 	// prepare client configuration
 	cfg := &client.Config{
 		// server address
 		ServerEndpoint: "localhost:46219",
 		// description of your application instance
-		ServiceDescription: &schema.ServiceDescription{
-			ServiceType:     "test_application",
-			ServiceInstance: "node_1",
+		InstanceDescription: &schema.InstanceDescription{
+			ServiceName:  "test_application",
+			InstanceName: "node_1",
 		},
 		// granularity
 		Periodicity: &utils.Duration{Duration: time.Second},

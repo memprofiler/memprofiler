@@ -35,7 +35,7 @@ func TestSimpleStorage(t *testing.T) {
 	}
 	// close and cleanup after test
 	defer func() {
-		err := storage.Close()
+		err = storage.Close()
 		assert.NoError(t, err)
 		err = os.RemoveAll(testDir)
 		assert.NoError(t, err)
@@ -44,7 +44,7 @@ func TestSimpleStorage(t *testing.T) {
 	// write data for labelSet
 	appender := storage.Appender()
 	for i := 1; i <= len(data); i++ {
-		_, err := appender.Add(labelSet, int64(i), data[int64(i)])
+		_, err = appender.Add(labelSet, int64(i), data[int64(i)])
 		assert.NoError(t, err)
 	}
 	err = appender.Commit()
@@ -116,7 +116,7 @@ func TestTwoLabelSetStorage(t *testing.T) {
 	}
 	// close and cleanup after test
 	defer func() {
-		err := storage.Close()
+		err = storage.Close()
 		assert.NoError(t, err)
 		err = os.RemoveAll(testDir)
 		assert.NoError(t, err)
@@ -134,7 +134,7 @@ func TestTwoLabelSetStorage(t *testing.T) {
 			appender := storage.Appender()
 			defer wg.Done()
 			for j := 1; j <= len(dataSet); j++ {
-				_, err := appender.Add(labelSet, int64(j), dataSet[int64(j)])
+				_, err = appender.Add(labelSet, int64(j), dataSet[int64(j)])
 				assert.NoError(t, err)
 			}
 			err = appender.Commit()

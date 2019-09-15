@@ -3,9 +3,6 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
-
-	"github.com/rs/zerolog"
 
 	"github.com/memprofiler/memprofiler/server/config"
 	"github.com/memprofiler/memprofiler/server/launcher"
@@ -21,7 +18,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger := newLogger(cfg.Logging)
+	logger := utils.NewLogger(cfg.Logging)
 
 	errChan := make(chan error, 2)
 	l, err := launcher.New(logger, cfg, errChan)
@@ -32,10 +29,4 @@ func main() {
 	defer l.Stop()
 
 	utils.BlockOnSignal(logger, errChan)
-}
-
-func newLogger(cfg *config.LoggingConfig) *zerolog.Logger {
-	logger := zerolog.New(os.Stderr).With().Timestamp().Logger()
-	zerolog.SetGlobalLevel(cfg.Level)
-	return &logger
 }

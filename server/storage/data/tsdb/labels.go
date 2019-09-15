@@ -23,9 +23,9 @@ func freeObjectsLabel() labels.Label {
 	return labels.Label{Name: metricTypeLabelName, Value: "FreeObjects"}
 }
 
-type MeasurementInfo struct {
+type measurementInfo struct {
 	Labels labels.Labels
 	Value  float64
 }
 
-type MeasurementsInfo []MeasurementInfo
+type measurementsInfo []measurementInfo

@@ -10,10 +10,10 @@ type saveStateAwaitDescription struct {
 	saveStateCommon
 }
 
-func (s *saveStateAwaitDescription) addDescription(desc *schema.ServiceDescription) error {
+func (s *saveStateAwaitDescription) addDescription(instanceDesc *schema.InstanceDescription) error {
 
 	// run new saver in persistent storage
-	dataSaver, err := s.p.getStorage().NewDataSaver(desc)
+	dataSaver, err := s.p.getStorage().NewDataSaver(instanceDesc)
 	if err != nil {
 		s.switchState(finished)
 		return err
@@ -25,21 +25,16 @@ func (s *saveStateAwaitDescription) addDescription(desc *schema.ServiceDescripti
 	}
 
 	// set session description
-	sd := &schema.SessionDescription{
-		ServiceType:     desc.GetServiceType(),
-		ServiceInstance: desc.GetServiceInstance(),
-		SessionId:       dataSaver.SessionID(),
-	}
-	if err := s.p.setSessionDescription(sd); err != nil {
+	if err := s.p.setSessionDescription(dataSaver.SessionDescription()); err != nil {
 		s.switchState(finished)
 		return err
 	}
 
 	// annotate logger and save it for further usage
 	logger := s.p.getLogger().With().Fields(map[string]interface{}{
-		"service_type":     desc.GetServiceType(),
-		"service_instance": desc.GetServiceInstance(),
-		"session_id":       dataSaver.SessionID(),
+		"service":    instanceDesc.ServiceName,
+		"instance":   instanceDesc.InstanceName,
+		"session_id": dataSaver.SessionDescription().Id,
 	}).Logger()
 	s.p.setLogger(&logger)
 	logger.Info().Msg("Received greeting message from client")
