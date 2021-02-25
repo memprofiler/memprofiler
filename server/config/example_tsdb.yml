@@ -1,6 +1,7 @@
 # Frontend GRPC API
 frontend:
   listen_endpoint: "localhost:46218"
+  frontend_endpoint: "localhost:8081"
 
 # Backend GRPC API
 backend:

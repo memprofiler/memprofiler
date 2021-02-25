@@ -46,15 +46,15 @@ func allowCORS(h http.Handler) http.Handler {
 	})
 }
 
-// StartReverseProxy start reverse proxy for front
-func StartReverseProxy(backendEndpoint, frontendEndpoint string) error {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
+// startReverseProxy start reverse proxy for front
+func startReverseProxy(backendEndpoint, frontendEndpoint string) error {
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	// register gRPC server endpoint
 	rmux := runtime.NewServeMux()
 	opts := []grpc.DialOption{grpc.WithInsecure()}
+
 	err := gw.RegisterMemprofilerFrontendHandlerFromEndpoint(ctx, rmux, backendEndpoint, opts)
 	if err != nil {
 		return err
@@ -64,6 +64,7 @@ func StartReverseProxy(backendEndpoint, frontendEndpoint string) error {
 	mux := http.NewServeMux()
 	mux.Handle("/", rmux)
 	mux.HandleFunc("/swagger.json", serveSwagger)
+
 	fs := http.FileServer(http.Dir("www/swagger-ui"))
 	mux.Handle("/swagger-ui/", http.StripPrefix("/swagger-ui", fs))
 

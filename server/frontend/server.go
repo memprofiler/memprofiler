@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"sort"
-	"time"
 
 	"github.com/rs/zerolog"
 
@@ -29,6 +28,7 @@ type server struct {
 	storage    storage.Storage
 	errChan    chan<- error
 	logger     *zerolog.Logger
+	cfg        *config.FrontendConfig
 }
 
 func (s *server) GetServices(
@@ -95,15 +95,10 @@ func (s *server) SubscribeForSession(
 }
 
 func (s *server) Start() {
-	time.Sleep(time.Second)
-	// 3. Reverse proxy
 	go func() {
-		s.logger.Info().Msg("------------------------Start-------------------------------)")
-		err := StartReverseProxy("localhost:46218", "localhost:8081")
-		s.logger.Err(err)
-		s.logger.Info().Msg("-------------------------------------------------------)")
+		s.errChan <- startReverseProxy(s.cfg.ListenEndpoint, s.cfg.FrontendEndpoint)
 	}()
-	time.Sleep(time.Second)
+
 	s.errChan <- s.grpcServer.Serve(s.listener)
 }
 
@@ -115,7 +110,6 @@ func NewServer(
 	locator *locator.Locator,
 	errChan chan<- error,
 ) (common.Service, error) {
-
 	listener, err := net.Listen("tcp", cfg.ListenEndpoint)
 	if err != nil {
 		return nil, err
@@ -131,6 +125,7 @@ func NewServer(
 		logger:   &subLogger,
 		errChan:  errChan,
 		listener: listener,
+		cfg:      cfg,
 	}
 
 	s.grpcServer = grpc.NewServer()
