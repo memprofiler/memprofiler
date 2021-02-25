@@ -97,5 +97,12 @@ func runServices(
 		return nil, err
 	}
 
+	// 3. Frontend reverse
+	locator.Logger.Debug().Msg("Starting frontend revers server")
+	ss[labelReverseProxy], err = frontend.NewReverseProxy(cfg.Frontend, locator, errChan)
+	if err != nil {
+		return nil, err
+	}
+
 	return ss, nil
 }

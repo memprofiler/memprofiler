@@ -21,7 +21,6 @@ import (
 var _ schema.MemprofilerFrontendServer = (*server)(nil)
 
 type server struct {
-	// httpServer *http.Server
 	grpcServer *grpc.Server
 	listener   net.Listener
 	computer   metrics.Computer
@@ -47,6 +46,7 @@ func (s *server) GetInstances(
 		// TODO: think about google.golang.org/grpc/status
 		return nil, err
 	}
+
 	return &schema.GetInstancesResponse{ServiceInstances: instances}, nil
 }
 
@@ -59,6 +59,7 @@ func (s *server) GetSessions(
 		// TODO: think about google.golang.org/grpc/status
 		return nil, err
 	}
+
 	return &schema.GetSessionsResponse{Sessions: sessions}, nil
 }
 
@@ -80,11 +81,13 @@ func (s *server) SubscribeForSession(
 				// session terminated by a service
 				return nil
 			}
+
 			// sort trend values by InUseBytes rate, since it the most relevant indicator for memory leak
 			sort.Slice(msg.Locations, func(i, j int) bool {
 				// descending order
 				return msg.Locations[i].Rates[0].Values.InUseBytes > msg.Locations[j].Rates[0].Values.InUseBytes
 			})
+
 			if err := stream.Send(msg); err != nil {
 				return err
 			}
@@ -95,10 +98,6 @@ func (s *server) SubscribeForSession(
 }
 
 func (s *server) Start() {
-	go func() {
-		s.errChan <- startReverseProxy(s.cfg.ListenEndpoint, s.cfg.FrontendEndpoint)
-	}()
-
 	s.errChan <- s.grpcServer.Serve(s.listener)
 }
 
@@ -129,65 +128,9 @@ func NewServer(
 	}
 
 	s.grpcServer = grpc.NewServer()
+
 	schema.RegisterMemprofilerFrontendServer(s.grpcServer, s)
 	reflection.Register(s.grpcServer)
 
 	return s, nil
 }
-
-// FIXME: use this code to setup HTTP server on the basis of GRPC server
-/*
-// Start runs Frontend server
-func (s *server) Start() {
-	s.errChan <- s.httpServer.ListenAndServe()
-}
-
-const terminationTimeout = time.Second
-
-// Stop terminates Frontend server
-func (s *server) Stop() {
-	ctx, cancel := context.WithTimeout(context.Background(), terminationTimeout)
-	defer cancel()
-	if err := s.httpServer.Shutdown(ctx); err != nil && err != ctx.Err() {
-		s.logger.Error(err).Msg("Backend shutdown error")
-	}
-}
-
-// NewServer initializes Frontend server
-func NewServer(
-	cfg *config.FrontendConfig,
-	locator *locator.Locator,
-	errChan chan<- error,
-) (common.Service, error) {
-
-	subLogger := locator.Logger.With().Fields(map[string]interface{}{
-		"subsystem": "frontend",
-	}).Logger()
-
-	s := &server{
-		computer: locator.Computer,
-		storage:  locator.Storage,
-		logger:   &subLogger,
-		errChan:  errChan,
-	}
-
-	grpcServer := grpc.NewServer()
-	schema.RegisterMemprofilerFrontendServer(grpcServer, s)
-	wrappedServer := grpcweb.WrapServer(grpcServer)
-
-	// Dump to logs resource list
-	for _, resource := range grpcweb.ListGRPCResources(grpcServer) {
-		s.logger.Debug().Str("URL", resource).Msg("HTTP Frontend server resource")
-	}
-
-	handler := func(resp http.ResponseWriter, req *http.Request) {
-		wrappedServer.ServeHTTP(resp, req)
-	}
-	s.httpServer = &http.Server{
-		Addr:    cfg.ListenEndpoint,
-		Handler: http.HandlerFunc(handler),
-	}
-
-	return s, nil
-}
-*/
